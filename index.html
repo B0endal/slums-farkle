@@ -329,6 +329,10 @@ html.calm .die.cat-golden::after { animation: none; }
 .worldmap .mn.bl .mc { stroke: var(--rust); }
 .worldmap .mn.hot .mc { stroke: var(--rust); stroke-width: 4; }
 .worldmap .mn.sel .mc { stroke: var(--moss); stroke-width: 4; }
+.worldmap .tbtn { cursor: pointer; }
+.worldmap .tbtn rect { fill: var(--moss); stroke: #000a; stroke-width: 2; }
+.worldmap .tbtn text { fill: #0d140d; font-weight: 700; font-size: 13px; }
+.btn.go2, .btn.act-on { background: var(--moss); color: #0d140d; border-color: #000a; }
 .worldmap .mn.tun .mc { fill: #1a1020; }
 .worldmap .ml { fill: var(--fg); font: 700 11px var(--font-body); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
 .worldmap .mn.unk .ml { fill: var(--muted); }
@@ -415,9 +419,10 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
     const keys = Object.keys(cnt).map(Number), counts = keys.map(k => cnt[k]).sort((a, b) => b - a);
     if (keys.length === 1) {
       if (n === 3) return { base: RULES.triple[keys[0]], type: "triple" };
-      if (n === 4) return { base: RULES.four, type: "four" };
-      if (n === 5) return { base: RULES.five, type: "five" };
-      if (n === 6) return { base: RULES.six, type: "six" };
+      const ones = keys[0] === 1 ? 1000 : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
+      if (n === 4) return { base: RULES.four + ones, type: "four" };
+      if (n === 5) return { base: RULES.five + ones, type: "five" };
+      if (n === 6) return { base: RULES.six + ones, type: "six" };
       return { base: 0 };
     }
     const sorted = vals.slice().sort((a, b) => a - b).join("");
@@ -515,6 +520,17 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
       const rem = free.length - s.idx.length;
       const v = s.score + REMAIN_BONUS[rem];
       if (!best || v > best.v) best = { v, idx: s.idx.map(k => free[k].i), score: s.score, rem };
+    }
+    // Übrig gebliebene einzelne 1er (immer) und 5er (wenn >=3 Würfel bleiben oder Hot Dice) mitnehmen
+    const chosen = new Set(best.idx);
+    for (const x of free) {
+      if (chosen.has(x.i)) continue;
+      const left = free.length - chosen.size - 1;
+      if (x.d.value === 1 || (x.d.value === 5 && (left >= 3 || left === 0))) {
+        const trial = [...chosen, x.i];
+        const r = scoreSelection(trial.map(i => dice[i]), factor);
+        if (r && r.score > best.score) { chosen.add(x.i); best = { v: r.score, idx: trial, score: r.score, rem: left }; }
+      }
     }
     return best;
   }
@@ -687,7 +703,7 @@ const LOCS = {
   schlosstor:{ name: "Schlosstor",          target: 4000, profile: "ausgewogen",    nb: ["markt", "schloss"] },
   schloss:   { name: "Inneres Schloss",     target: 6000, profile: "jaeger",        nb: ["schlosstor", "saal"], clothes: "adel" },
   saal:      { name: "Torsaal",             target: 7500, profile: "jaeger",        nb: ["schloss"], clothes: "adel" },
-  // Höhlensystem unter der Kanalisation (Endspiel, erst nach dem Spion in der Kneipe erreichbar)
+  // Höhlensystem unter der Kanalisation (Endspiel, erst nach dem Spion im Gasthof erreichbar)
   tunnel1:   { name: "Spähgang",            target: 6500, profile: "risikofreudig", nb: ["kanal", "tunnel2"], tunnel: true },
   tunnel2:   { name: "Lagerhöhle",          target: 8000, profile: "jaeger",        nb: ["tunnel1", "tunnel3"], tunnel: true },
   tunnel3:   { name: "Kriegskammer",        target: 9000, profile: "jaeger",        nb: ["tunnel2", "generalsaal"], tunnel: true },
@@ -754,7 +770,7 @@ const MACHER_POOL = ["sig_s1", "sig_s2", "sig_s3", "t15_4", "t456_4", "t23_4"];
 STORY_NPCS.forEach(([id, name, story, home, from, to, min, group, profile, target]) => {
   NPCS[id] = { id, name, story, home, from, to, target, min, max: 3 * min, startBudget: 3 * min, profile, group, dice: id.startsWith("slums:") ? 5 : 6 };
 });
-const SPY_CANDIDATES = ["Säufer Gundolf", "Trinker Wolle", "Zecherin Marga", "Barde Balduin", "Bierbrauer Ansgar", "Söldner Kuno", "Kartenhai Rufus"].map(n => "kneipe:" + n);
+const SPY_CANDIDATES = ["Edelmann", "Edeldame Rosalind", "Baron Leopold", "Gastwirt Casimir"].map(n => "gasthof:" + n);
 // Tag- und Nachtwache wechseln mit der Tageszeit den Ort (Morgen, Mittags, Nachmittags, Nacht)
 NPCS["wache:Nachtwache"] = { id: "wache:Nachtwache", name: "Nachtwache", sched: ["kneipe", "kneipe", "stadttor", "stadttor"], target: 3000, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
 NPCS["wache:Tagwache"] = { id: "wache:Tagwache", name: "Tagwache", sched: ["stadttor", "stadttor", "kneipe", "kneipe"], target: 3000, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
@@ -1119,6 +1135,11 @@ function endDuel(win) {
     if (G.loc === "kneipe" && n.id === "wache:Nachtwache" && G.time <= 1 && G.quest.wachwechsel === 0) { G.quest.wachwechsel = 1; res.talk = ["Nachtwache: „Hick. Gut gewürfelt, Slumkind. Hör zu: Die Tagwache hat mich neulich im Farkle vernichtet. Keine Chance hatte ich. Seitdem prahlt sie überall mit ihrem Würfelglück und erzählt jedem, ich könne nichts.“", "Nachtwache: „Du siehst aus wie ein Wicht aus den Slums, und genau deshalb ist das meine Gelegenheit. Du hast mich geschlagen. Schlag jetzt die Tagwache, sobald sie nachmittags oder nachts hier sitzt. Und danach sag ihr, du hättest gegen mich verloren.“", "Nachtwache: „Dann muss sie glauben, ich sei besser als der Mann, der sie besiegt hat. Das frisst sie auf. Und ich sorge dafür, dass am Tor abends und nachts jemand für dich ein gutes Wort einlegt.“"]; res.lines.push("Neue Quest: „Wachwechsel“. Besiege nachmittags oder nachts die Tagwache in der Kneipe."); }
     else if (G.loc === "kneipe" && n.id === "wache:Tagwache" && G.time >= 2 && G.quest.wachwechsel === 1) { G.quest.wachwechsel = 1.5; res.wache = true; res.talk = ["Tagwache: „Was? Du? Ein Slumkind? Hick … Das war Glück. Reines Würfelglück. Ich lass mich doch nicht von einem Hungerleider schlagen. Wer hat dir das beigebracht?“"]; res.lines.push("Du hast die Tagwache besiegt. Wie antwortest du?"); }
   }
+  if (win && G.loc === "kneipe" && n.id === "kneipe:Säufer Gundolf" && !G.quest.tunnel && !G.flags.spyhint) {
+    G.flags.spyhint = true;
+    res.talk = ["Gundolf: „Hick … Du gewinnst ja ganz ordentlich. Dann sag ich dir was. Im Gasthof sitzt einer, der nie ausspielt und zu viel fragt. Ein Spion der Vorhut. Aber da kommst du nur als Bürger rein.“"];
+    res.lines.push("Neuer Hinweis: Im Gasthof (Marktplatz) hält sich ein Spion auf.");
+  }
   if (win && fin && n.id === G.spy && !G.quest.tunnel) {
     G.quest.tunnel = 1;
     res.talk = [`${n.name}: „Na gut, du hast mich. Ich trinke nie aus, ich lausche nur. Wir sind die Vorhut. Unter der Inneren Kanalisation liegt ein Höhlensystem, und dort sammelt sich ein Heer, das die Stadt von innen öffnen soll. Der Zugang liegt am Ende der Kanalisation, hinter dem Gitter, das alle für verrostet halten. Sei gewarnt: Da unten sitzen keine Säufer. In jedem Raum warten fünf Würfler, und ganz hinten wartet unser General.“`];
@@ -1466,7 +1487,7 @@ function migrate() {
   initStory(G.npcs, G.rare);
   G.vis = G.vis || {}; if (LOCS[G.loc]) G.vis[G.loc] = true; if (G.prev && LOCS[G.prev]) G.vis[G.prev] = true;
   G.quest = G.quest || { wachwechsel: 0 }; if (G.quest.tunnel === undefined) G.quest.tunnel = 0;
-  if (!G.spy) G.spy = pick(SPY_CANDIDATES);
+  if (!G.spy || !G.spy.startsWith("gasthof:")) G.spy = pick(SPY_CANDIDATES);
   if (!G.npcs["generalsaal:General Kharzul Eisenhand"]) initTunnel(G.npcs, G.rare);   // Läufe aus älteren Prototypen passen nicht zur neuen Welt
 }
 function save() {
@@ -1616,9 +1637,14 @@ function viewWorld() {
     return `<g data-maploc="${k}" role="button" tabindex="0" aria-label="${esc(LOCS[k].name)}" class="mn ${here ? "here" : ""} ${vis ? "" : "unk"} ${selLoc === k ? "sel" : ""} ${bl ? "bl" : ""} ${hot ? "hot" : ""} ${LOCS[k].tunnel ? "tun" : ""}">
       <circle cx="${x}" cy="${y}" r="26" fill="transparent"/><circle cx="${x}" cy="${y}" r="${here ? 15 : 13}" class="mc"/>${here ? `<circle cx="${x}" cy="${y}" r="5" class="md"/>` : ""}${bl ? `<text x="${x}" y="${y + 4}" text-anchor="middle" class="mk">✕</text>` : ""}
       <text x="${x}" y="${y + 29}" text-anchor="middle" class="ml">${esc(MAP_SHORT[k])}</text></g>`; }).join("");
+  let tb = "";
+  if (selLoc !== G.loc && nbOf(G.loc).includes(selLoc) && !blockReason(G.loc, selLoc) && MAP_POS[selLoc]) {
+    const [tx, ty] = MAP_POS[selLoc], bx = Math.min(Math.max(tx, 45), 315), by = ty - 40 < 12 ? ty + 40 : ty - 40;
+    tb = `<g data-travel="${selLoc}" role="button" tabindex="0" class="tbtn"><rect x="${bx - 40}" y="${by - 13}" width="80" height="26" rx="13"/><text x="${bx}" y="${by + 5}" text-anchor="middle">Reisen ➜</text></g>`;
+  }
   const mapH = Math.max(...known.map(k => MAP_POS[k][1])) + 48;
   return `<div class="stack"><div><h2>Karte</h2><div class="sub">Tippe einen Ort an. Gestrichelte Wege liegen unter der Erde.</div></div>
-    <div class="card" style="padding:6px"><svg class="worldmap" viewBox="0 0 360 ${mapH}" role="group" aria-label="Karte der Umgebung">${lines}${nodes}${exit}</svg></div>
+    <div class="card" style="padding:6px"><svg class="worldmap" viewBox="0 0 360 ${mapH}" role="group" aria-label="Karte der Umgebung">${lines}${nodes}${exit}${tb}</svg></div>
     <div class="small muted maplegend"><span><i class="lg here"></i>Du</span><span><i class="lg"></i>besucht</span><span><i class="lg unk"></i>noch nicht besucht</span><span><i class="lg bl"></i>gesperrt</span></div>
     ${mapDetail(selLoc)}</div>`;
 }
@@ -1719,7 +1745,8 @@ function rulesHtml() {
   return `<div class="rules">
     ${rule("Einzelne 1", [[1]], R.single[1])}${rule("Einzelne 5", [[5]], R.single[5])}<hr>
     ${[1, 2, 3, 4, 5, 6].map(v => rule("Drilling", [[v, v, v]], R.triple[v])).join("")}<hr>
-    ${rule("Vier gleiche", [A(4)], R.four)}${rule("Fünf gleiche", [A(5)], R.five)}${rule("Sechs gleiche", [A(6)], R.six)}<hr>
+    ${rule("Vier gleiche", [A(4)], R.four)}${rule("Fünf gleiche", [A(5)], R.five)}${rule("Sechs gleiche", [A(6)], R.six)}
+    ${rule("Vier Einsen", [[1,1,1,1]], R.four + 1000)}${rule("Fünf Einsen", [[1,1,1,1,1]], R.five + 1000)}${rule("Sechs Einsen", [[1,1,1,1,1,1]], R.six + 1000)}<hr>
     ${rule("Teilstraße", [[1, 2, 3, 4, 5]], R.partialStraight)}${rule("Teilstraße", [[2, 3, 4, 5, 6]], R.partialStraight)}${rule("Straße", [[1, 2, 3, 4, 5, 6]], R.straight)}<hr>
     ${rule("Drei Paare", [A(2), A(2), A(2)], R.threePair)}${rule("Doppel-Drilling", [A(3), A(3)], R.doubleTriple)}${rule("Vierling plus Paar", [A(4), A(2)], R.fourPlusPair)}
   </div><p class="small muted">Das Sternchen steht für eine beliebige Augenzahl, jede Gruppe für eine eigene Zahl. Alle gewählten Würfel müssen zählen. Zählen alle Würfel eines Wurfs, würfelst du mit allen neu weiter. Bei mehreren Möglichkeiten gilt die beste Aufteilung.</p>`;
@@ -1750,16 +1777,21 @@ function openEnemyDice() {
   s.pool.forEach(id => cnt[id] = (cnt[id] || 0) + 1);
   openSheet(`<h2>Würfel von ${esc(n.name)}</h2><div class="small muted">${s.pool.length} Würfel im Beutel. Angezeigt sind nur deine eigenen Messwerte.</div>${Object.keys(cnt).map(id => `<div class="stack" style="gap:2px">${cnt[id] > 1 ? `<div class="small muted">${cnt[id]}× im Beutel</div>` : ""}${infoCard(id)}</div>`).join("")}<button class="btn primary full" data-act="close">Schließen</button>`, true);
 }
+let bagFilter = "all";
 function viewBag() {
   const act = new Set(G.active); const showStats = !!(P.settings && P.settings.stats);
-  const rows = G.inv.map(x => {
+  const bagGroups = [...new Set(G.inv.map(x => comp(x.id).group).filter(Boolean))].sort();
+  const inv = G.inv.filter(x => bagFilter === "all" ? true : bagFilter === "act" ? act.has(x.uid) : bagFilter === "fav" ? comp(x.id).fav : bagFilter.startsWith("g:") ? comp(x.id).group === bagFilter.slice(2) : true);
+  const bchip = (k, l) => `<button class="btn small ${bagFilter === k ? "on" : ""}" data-bf="${esc(k)}" aria-pressed="${bagFilter === k}">${esc(l)}</button>`;
+  const rows = inv.map(x => {
     const d = byId[x.id], on = act.has(x.uid);
     return `<div class="card stack" style="gap:6px"><div class="row"><div class="grow">${dieChip(x.id)}<b>${esc(cname(x.id))}</b><span class="stars">${esc(cmarks(x.id))}</span>${comp(x.id).cn ? `<div class="small muted">${esc(dname(x.id))}</div>` : ""}${comp(x.id).group ? `<span class="tag">${esc(comp(x.id).group)}</span>` : ""}${dbg ? `<span class="tag ${d.category === "okkult" || d.category === "golden" ? "rare" : ""}">${d.category}</span>` : ""}</div>
-      <button class="btn small ${on ? "primary" : ""}" data-active="${x.uid}" aria-pressed="${on}">${on ? "Aktiv" : "Tasche"}</button>
+      <button class="btn small ${on ? "act-on" : ""}" data-active="${x.uid}" aria-pressed="${on}">${on ? "Aktiv" : "Tasche"}</button>
       ${LOCS[G.loc].dealer ? `<button class="btn small danger" data-sell="${x.uid}">Verkaufen ${Math.floor(d.baseValue / 2)}</button>` : ""}</div>
       ${showStats ? statBlock(x.id) : ""}${dbg ? bars(d) : ""}</div>`;
   }).join("");
   return `<div class="stack"><div><h2>Tasche</h2><div class="sub">${G.active.length} von 6 Würfeln aktiv. Du kannst auch mit weniger würfeln.</div></div>
+    <div class="chips">${bchip("all", "Alle")}${bchip("act", "Aktiv")}${bchip("fav", "♥ Favoriten")}${bagGroups.map(g => bchip("g:" + g, g)).join("")}</div>
     ${rows || `<div class="card muted">Du hast keine Würfel mehr. Mehr dazu unter „Mehr“.</div>`}
     <div class="card stack" style="gap:6px"><h3>Kleidung</h3><div class="small">${[G.items.buerger && "Bürgerkleidung", G.items.adel && "Adelskleidung"].filter(Boolean).join(", ") || "Keine"}</div>
       <h3>Quest-Items</h3><div class="small">${[hasQ("kanalisationsschluessel") && "Kanalisationsschlüssel", hasQ("wohlwollen_nachtwache") && "Wohlwollen der Nachtwache", hasQ("wohlwollen_tagwache") && "Wohlwollen der Tagwache"].filter(Boolean).join(", ") || "Keine"}</div></div>
@@ -1836,7 +1868,7 @@ function viewMore() {
       <div class="small">Wohlwollen der Nachtwache (Tor abends und nachts): ${hasQ("wohlwollen_nachtwache") ? "im Besitz" : "noch nicht erhalten"}</div>
       <div class="small">Wohlwollen der Tagwache (Tor tagsüber): ${hasQ("wohlwollen_tagwache") ? "im Besitz" : "noch nicht erhalten"}</div>
       <h3>Quests</h3>
-      <div class="small">Die Vorhut: ${G.quest.tunnel >= 2 ? "erledigt, die Stadt ist gerettet" : G.quest.tunnel === 1 ? "Der Zugang liegt am Ende der Inneren Kanalisation. Besiege alle Gegner Raum für Raum und zuletzt den General" : "nicht begonnen. Unter den Gästen der Kneipe sitzt ein Fremder, der zu viel fragt. Besiege ihn im letzten Duell"}</div>
+      <div class="small">Die Vorhut: ${G.quest.tunnel >= 2 ? "erledigt, die Stadt ist gerettet" : G.quest.tunnel === 1 ? "Der Zugang liegt am Ende der Inneren Kanalisation. Besiege alle Gegner Raum für Raum und zuletzt den General" : (G.flags.spyhint ? "nicht begonnen. Im Gasthof sitzt ein Fremder, der zu viel fragt. Besiege ihn im letzten Duell" : "nicht begonnen. In der Kneipe munkelt man von einem Spion. Gewinne gegen Säufer Gundolf")}</div>
       <div class="small">Wachwechsel: ${G.quest.wachwechsel >= 2 ? "erledigt" : G.quest.wachwechsel === 1.5 ? "Du musst der Tagwache antworten" : G.quest.wachwechsel === 1 ? "Schritt 2: nachmittags oder nachts die Tagwache in der Kneipe besiegen" : "nicht begonnen: tagsüber die Nachtwache in der Kneipe besiegen"}</div>
       <div class="small muted">Freischaltungen und Quest-Items bleiben nach einem Run erhalten. Kleidung und der Queststand ohne Quest-Item verfallen.</div></div>
     <div class="card stack" style="gap:6px"><h3>Geschichten</h3>${Object.keys(STORIES).map(id => { const S = STORIES[id], st = G.st[id] || {}; return `<div class="small"><b>${esc(S.name)}</b>: ${st.done ? "erledigt" : st.on ? esc(hintOf(S, st)) : "nicht begonnen. " + esc(S.start)}</div>`; }).join("")}</div>
@@ -1893,7 +1925,7 @@ document.addEventListener("pointermove", e => { if (lpTimer && Math.hypot(e.clie
 document.addEventListener("click", e => {
   const inf = e.target.closest("[data-info]"); if (inf) return openDieInfo(inf.dataset.info);
   const ml = e.target.closest("[data-maploc]"); if (ml) { selLoc = ml.dataset.maploc; return render(); }
-  const t = e.target.closest("button, [data-act]"); if (!t) return;
+  const t = e.target.closest("button, [data-act], [data-travel]"); if (!t) return;
   if (t.dataset.tab) { view = t.dataset.tab; return render(); }
   if (t.dataset.travel) return travel(t.dataset.travel);
   if (t.dataset.duel) { const n = NPCS[t.dataset.duel]; G.duel = { npcId: n.id, stake: n.min, phase: "idle", owner: "p", pScore: 0, nScore: 0, turn: 0, table: [], log: [], started: false, factor: 0 }; if (isFinal(n.id)) { const sp = G.npcs[n.id]; G.duel.stakeDie = pickWeighted(sp.pool.map(d => [d, d === sp.stolen ? 2 : 1])); } view = "duel"; return render(); }
@@ -1901,6 +1933,7 @@ document.addEventListener("click", e => {
   if (t.dataset.active) return toggleActive(+t.dataset.active);
   if (t.dataset.sell) return sell(+t.dataset.sell);
   if (t.dataset.tut) { if (t.dataset.tut === "done") { P.settings = P.settings || {}; P.settings.tutorialDone = true; save(); return closeSheet(); } return tutorial(+t.dataset.tut); }
+  if (t.dataset.bf) { bagFilter = t.dataset.bf; return render(); }
   if (t.dataset.cf) { compFilter = t.dataset.cf; return render(); }
   if (t.dataset.cs) { compSort = t.dataset.cs; return render(); }
   if (t.dataset.cedit) return editComp(t.dataset.cedit);

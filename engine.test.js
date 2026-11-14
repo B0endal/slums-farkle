@@ -11,7 +11,7 @@ t("Drillinge", () => { assert.equal(S([1,1,1]).score, 1000); assert.equal(S([2,2
 t("Mehrfache (Beispiele der Spezifikation)", () => {
   // Regelbild: vier gleiche 1000, fünf gleiche 2000, sechs gleiche 3000, unabhängig von der Augenzahl
   assert.equal(S([3,3,3,3]).score, 1000); assert.equal(S([3,3,3,3,3,3]).score, 3000);
-  assert.equal(S([1,1,1,1]).score, 1100); /* besser als 1000: Drilling 1000 plus einzelne 1 */ assert.equal(S([2,2,2,2,2]).score, 2000);
+  assert.equal(S([1,1,1,1]).score, 2000); assert.equal(S([2,2,2,2,2]).score, 2000);
   assert.equal(S([6,6,6,6,6,6]).score, 3000);
 });
 t("Straße und Teilstraße", () => {
@@ -143,5 +143,17 @@ t("Simulation: Okkult-Beutel schlägt Standard deutlich", () => {
   for (let i = 0; i < R; i++) if (E.simulateDuel({ dice: occ, dbById: byId, profile: "ausgewogen", starts: true }, { dice: std, dbById: byId, profile: "ausgewogen", starts: false }, 2000, rng).winner === "a") w++;
   console.log("   Siegquote 6 Okkulte vs Standard:", (w / R).toFixed(3));
   assert.ok(w / R > 0.8);
+});
+t("Vier/Fünf/Sechs Einsen: 2000/3000/4000", () => {
+  const d = n => Array(n).fill(0).map(() => ({ value: 1 }));
+  assert.strictEqual(E.scoreSelection(d(4), 0).score, 2000);
+  assert.strictEqual(E.scoreSelection(d(5), 0).score, 3000);
+  assert.strictEqual(E.scoreSelection(d(6), 0).score, 4000);
+  assert.strictEqual(E.scoreSelection(Array(4).fill({ value: 5 }), 0).score, 1000);
+});
+t("KI nimmt zusätzliche Einsen mit", () => {
+  const dice = [1, 1, 3, 4, 6, 1].map(v => ({ value: v, locked: false }));
+  const p = E.aiChoose(dice, 0);
+  assert.ok(p.idx.length === 3 && p.score >= 1000);
 });
 console.log("\n" + n + " Tests bestanden");

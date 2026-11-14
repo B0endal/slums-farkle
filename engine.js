@@ -60,9 +60,10 @@
     const keys = Object.keys(cnt).map(Number), counts = keys.map(k => cnt[k]).sort((a, b) => b - a);
     if (keys.length === 1) {
       if (n === 3) return { base: RULES.triple[keys[0]], type: "triple" };
-      if (n === 4) return { base: RULES.four, type: "four" };
-      if (n === 5) return { base: RULES.five, type: "five" };
-      if (n === 6) return { base: RULES.six, type: "six" };
+      const ones = keys[0] === 1 ? 1000 : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
+      if (n === 4) return { base: RULES.four + ones, type: "four" };
+      if (n === 5) return { base: RULES.five + ones, type: "five" };
+      if (n === 6) return { base: RULES.six + ones, type: "six" };
       return { base: 0 };
     }
     const sorted = vals.slice().sort((a, b) => a - b).join("");
@@ -160,6 +161,17 @@
       const rem = free.length - s.idx.length;
       const v = s.score + REMAIN_BONUS[rem];
       if (!best || v > best.v) best = { v, idx: s.idx.map(k => free[k].i), score: s.score, rem };
+    }
+    // Übrig gebliebene einzelne 1er (immer) und 5er (wenn >=3 Würfel bleiben oder Hot Dice) mitnehmen
+    const chosen = new Set(best.idx);
+    for (const x of free) {
+      if (chosen.has(x.i)) continue;
+      const left = free.length - chosen.size - 1;
+      if (x.d.value === 1 || (x.d.value === 5 && (left >= 3 || left === 0))) {
+        const trial = [...chosen, x.i];
+        const r = scoreSelection(trial.map(i => dice[i]), factor);
+        if (r && r.score > best.score) { chosen.add(x.i); best = { v: r.score, idx: trial, score: r.score, rem: left }; }
+      }
     }
     return best;
   }

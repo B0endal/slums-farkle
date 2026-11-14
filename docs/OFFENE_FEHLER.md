@@ -24,3 +24,9 @@ Stand 14.11.2026, Version Cache v11. Wird nach Testende gesammelt abgearbeitet. 
 - **Beobachtet:** …
 - **Erwartet:** …
 - **Zu prüfen:** …
+
+## Erledigt (v13)
+- Vier/Fünf/Sechs Einsen zählen 2000/3000/4000.
+- KI nimmt übrige 1er (immer) und 5er (wenn ≥3 Würfel bleiben oder Hot Dice) mit.
+- Spion sitzt im Gasthof; Hinweis kommt von Säufer Gundolf in der Kneipe.
+- Karte: Reisen-Button direkt am Ort. Tasche: Filter, grüner Aktiv-Button.
