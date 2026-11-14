@@ -1,6 +1,6 @@
 // Balancing der Welt nach Spezifikation v3: Siegquoten verschiedener Spielerbeutel gegen die echten Poolgruppen 1 bis 6c
 // und der Silberfluss. Aufruf: node sim3.js [Duelle je Zelle]
-const E = require("./engine.js"), DB = require("./dice.json");
+const E = require("../../engine.js"), DB = require("../../dice.json");
 const byId = Object.fromEntries(DB.map(d => [d.id, d]));
 const T = +process.argv[2] || 400, rng = E.mulberry32(20261113);
 const pick = a => a[Math.floor(rng() * a.length)], bag = ids => ids.map(id => byId[id]);

@@ -1,5 +1,5 @@
 // Wirkung der Regel "Slums-Gegner würfeln mit 5 statt 6 Würfeln": Siegquote des Startbeutels gegen Slums-Pools (Gruppe 1, vorsichtig, Ziel 1500)
-const E = require("./engine.js"), DB = require("./dice.json");
+const E = require("../../engine.js"), DB = require("../../dice.json");
 const byId = Object.fromEntries(DB.map(d => [d.id, d])), T = +process.argv[2] || 2000, rng = E.mulberry32(4242);
 const wp = items => { const t = items.reduce((a, x) => a + x[1], 0); let x = rng() * t; for (const [v, w] of items) { x -= w; if (x < 0) return v; } return items[0][0]; };
 const g1 = () => { const c = wp([["std", 60], ["bd", 32], ["bq", 8]]); return c === "std" ? byId.std : byId[`${c}_f${1 + Math.floor(rng() * 6)}_m${1 + Math.floor(rng() * 6)}`]; };

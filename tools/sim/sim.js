@@ -1,4 +1,4 @@
-const E = require("./engine.js"), DB = require("./dice.json");
+const E = require("../../engine.js"), DB = require("../../dice.json");
 const byId = Object.fromEntries(DB.map(d => [d.id, d]));
 const T = +process.argv[2] || 600;
 const rng = E.mulberry32(20261113);

@@ -1,4 +1,4 @@
-const E = require("./engine.js"), DB = require("./dice.json");
+const E = require("../../engine.js"), DB = require("../../dice.json");
 const byId = Object.fromEntries(DB.map(d => [d.id, d])), rng = E.mulberry32(77), T = 600;
 const bag = ids => ids.map(id => byId[id]), std = id => Array(6).fill(id);
 const mixed = (ids) => () => bag(ids.concat(Array(6 - ids.length).fill("std")));

@@ -4,6 +4,9 @@ Stand: 13.11.2026, Version „Story" (Service-Worker-Cache slums-v7). Sprache im
 ## Startnachricht für den neuen Chat (kopieren)
 „Ich entwickle das Farkle-Roguelite ‚Der Weg aus den Slums' (Browserspiel, Vanilla-JS, PWA, mobil zuerst). Lies die angehängte UEBERGABE_NEUER_CHAT.md und die Projektdateien (farkle_projekt.zip, entpacken). Der Stand ist fertig bis einschließlich Story-Strängen. Nächster Schritt: Test auf dem iPhone auswerten und die offenen Punkte aus Abschnitt 8 abarbeiten. Arbeite eigenständig, melde dich nur bei Entscheidungen, die ich treffen muss, und halte Antworten kurz (ich lese auf dem Handy)."
 
+## 0. Update 14.11.2026
+Das Projekt liegt auf GitHub (B0endal/slums-farkle, Pages aktiv). Ein neuer Chat klont das Repo statt das Zip zu nutzen. Pfade: Simulationen in tools/sim/, Doku in docs/. gen_data.py ist entfernt (dice.json ist die Quelle). Die iPhone-Checkliste ist vollständig bestanden (docs/CHECKLISTE_iPhone.md). Dateiliste in Abschnitt 2 ist entsprechend zu lesen.
+
 ## 1. Links und Dokumente
 - Spielversion (Claude-Seite, privat): https://claude.ai/artifact/1VzZ2jh5uMTTGghkuUGDpw (Slug 040c4b1b-7d7e-46ed-98ee-d7ed73aeabd4, letzte Version 1794603982-693d). Neu veröffentlichen mit publish_files (slug, base_version = letzte Version, nur index.html).
 - Spezifikation v3 (Welt, Regeln, final): https://claude.ai/artifact/2vzb2c12mv3fzYeVpY8Bcd
