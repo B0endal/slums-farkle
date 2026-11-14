@@ -89,7 +89,7 @@ h3 { margin: 0 0 6px; font-size: .78rem; text-transform: uppercase; letter-spaci
 .rust { color: var(--rust); } .moss { color: var(--moss); } .silvertxt { color: var(--silver); }
 
 nav.tabs {
-  display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--surface);
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--line); background: var(--surface);
   padding-bottom: 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
 }
 nav.tabs button {
@@ -315,6 +315,28 @@ html.calm .die.cat-golden::after { animation: none; }
 .pat-ring::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='7' y='7' width='86' height='86' rx='14' fill='none' stroke='%237a6a48' stroke-opacity='.3' stroke-width='2'/%3E%3C/svg%3E"); }
 .pat-grainy::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M0 30 Q25 24 50 30 T100 30 M0 62 Q25 56 50 62 T100 62' stroke='%237a6a48' stroke-opacity='.18' stroke-width='2' fill='none'/%3E%3C/svg%3E"); }
 .die.cat-okkult.pat-runes::before, .die.cat-okkult.pat-swirl::before, .die.cat-okkult.pat-stars::before { opacity: 1; }
+
+.worldmap { width: 100%; height: auto; display: block; touch-action: manipulation; }
+.worldmap .me { stroke: var(--line); stroke-width: 3; stroke-linecap: round; }
+.worldmap .me.ug { stroke-dasharray: 2 7; }
+.worldmap .me.hot { stroke: var(--silver); stroke-width: 3.5; }
+.worldmap .me.bl { stroke: var(--rust); stroke-width: 2.5; stroke-dasharray: 6 6; }
+.worldmap .mn { cursor: pointer; outline: none; }
+.worldmap .mc { fill: var(--surface2); stroke: var(--silver); stroke-width: 2.5; }
+.worldmap .mn.unk .mc { fill: var(--bg); stroke: var(--muted); stroke-dasharray: 3 3; }
+.worldmap .mn.here .mc { fill: var(--silver); }
+.worldmap .mn.here .md { fill: var(--on-accent); }
+.worldmap .mn.bl .mc { stroke: var(--rust); }
+.worldmap .mn.hot .mc { stroke: var(--rust); stroke-width: 4; }
+.worldmap .mn.sel .mc { stroke: var(--moss); stroke-width: 4; }
+.worldmap .mn.tun .mc { fill: #1a1020; }
+.worldmap .ml { fill: var(--fg); font: 700 11px var(--font-body); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
+.worldmap .mn.unk .ml { fill: var(--muted); }
+.worldmap .mk { fill: var(--rust); font: 700 12px var(--font-body); }
+.maplegend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.maplegend .lg { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--silver); background: var(--surface2); vertical-align: -1px; margin-right: 5px; }
+.maplegend .lg.here { background: var(--silver); } .maplegend .lg.unk { border-style: dashed; border-color: var(--muted); background: var(--bg); } .maplegend .lg.bl { border-color: var(--rust); }
+nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; padding-right: 1px; white-space: nowrap; overflow: hidden; text-overflow: clip; }
 @media (prefers-reduced-motion: reduce) { .die.cat-golden::after { animation: none; } body::before, body::after { transition: none; } }
 </style>
 
@@ -859,7 +881,7 @@ function newRun() {
   initTunnel(npcs, R); initStory(npcs, R);
   inv.forEach(x => markSeen(x.id));
   G = { v: 2, day: 1, time: 0, silver: startSilver(), loc: "handel", prev: null, pressure: { handel: 5 }, inv, active: inv.map(x => x.uid), npcs, duel: null, lastResult: null,
-    items: { buerger: false, adel: false }, quest: { wachwechsel: 0, tunnel: 0 }, shop: null, rare: R, spy: pick(SPY_CANDIDATES), st: {}, flags: {}, disc: 0, roam: {}, shop2: null };
+    items: { buerger: false, adel: false }, quest: { wachwechsel: 0, tunnel: 0 }, shop: null, rare: R, spy: pick(SPY_CANDIDATES), st: {}, flags: {}, disc: 0, roam: {}, shop2: null, vis: {} };
   view = "map";
   save();
 }
@@ -882,12 +904,13 @@ const hasQ = k => !!P.qitems[k];
 const pmax = () => (G.flags && G.flags.wache === "erpressen") ? 13 : 10;
 const priceOf = id => Math.max(1, Math.round(byId[id].baseValue * (100 - ((G && G.disc) || 0)) / 100));
 const tickNow = () => G.day * 4 + G.time;
-function passOk() { return hasQ("wohlwollen_nachtwache") || G.quest.wachwechsel >= 2; }
+// Tor: Tagsüber öffnet das Wohlwollen der Tagwache (Verrat an der Nachtwache), abends und nachts das der Nachtwache (Lüge gegenüber der Tagwache)
+function passOk(day) { return day ? (hasQ("wohlwollen_tagwache") || G.quest.wachwechsel === 3) : (hasQ("wohlwollen_nachtwache") || G.quest.wachwechsel === 2); }
 const cleared = loc => Object.values(NPCS).filter(n => n.loc === loc).every(n => G.npcs[n.id] && G.npcs[n.id].out);
 function blockReason(a, b) {
   const is = (x, y) => (a === x && b === y) || (a === y && b === x);
   if (is("slums", "kanal") && !hasQ("kanalisationsschluessel")) return "Schlüssel fehlt";
-  if (is("stadttor", "markt") && G.flags.wache !== "anzeigen") { if (G.time < 2) return "Tor tagsüber zu"; if (!passOk()) return "Wachwechsel fehlt"; }
+  if (is("stadttor", "markt") && G.flags.wache !== "anzeigen") { if (!passOk(G.time < 2)) return G.time < 2 ? "Tor tagsüber zu" : "Wachwechsel fehlt"; }
   if (is("markt", "schlosstor") && !G.items.adel) return "Adelskleidung fehlt";
   if (is("kanal", "tunnel1") && !G.quest.tunnel) return "Zugang unbekannt";
   if (is("tunnel1", "tunnel2") && !cleared("tunnel1")) return "Raum nicht gesichert";
@@ -905,7 +928,7 @@ function travel(dest) {
   if (LOCS[dest].tunnel) G.pressure[dest] = 0;
   else if (G.st.salz && G.st.salz.carry) G.pressure[dest] = pr(dest) + 1;
   const from = G.loc;
-  G.prev = G.loc; G.loc = dest;
+  G.prev = G.loc; G.loc = dest; G.vis = G.vis || {}; G.vis[from] = true; G.vis[dest] = true;
   FX.play("step");
   advanceTime();
   if (pr(dest) >= pmax()) return busted("Die Wachen haben dich eingeholt.");
@@ -1093,8 +1116,8 @@ function endDuel(win) {
   }
   if (win) {
     if (n.id === "gasse:Schatten-Gretel" && !P.unlocks.schwarzmarkt) { P.unlocks.schwarzmarkt = true; res.talk = ["Schatten-Gretel: „Du hast Nerven. Und Glück. Geh zu Rattenschnauze, hinten in der Gasse, hinter den Fässern. Sag, Gretel schickt dich.“"]; res.lines.push("Der Schwarzmarkt in der Gasse ist dauerhaft freigeschaltet."); }
-    if (G.loc === "kneipe" && n.id === "wache:Nachtwache" && G.time <= 1 && G.quest.wachwechsel === 0) { G.quest.wachwechsel = 1; res.talk = ["Nachtwache: „Hick. Gut gewürfelt. Du fragst nach dem Wachwechsel? Wenn die Sonne sinkt, tauschen wir die Plätze. Dann sitzt meine Ablösung hier und ich stehe am Tor.“", "Nachtwache: „Die Tagwache ist ein sturer Bock. Schlag sie nachmittags oder nachts hier in der Kneipe, dann erkennt sie dich an. Dann gehst du am Tor ohne Ärger durch.“"]; res.lines.push("Neue Quest: „Wachwechsel“. Besiege nachmittags oder nachts die Tagwache in der Kneipe."); }
-    else if (G.loc === "kneipe" && n.id === "wache:Tagwache" && G.time >= 2 && G.quest.wachwechsel === 1) { G.quest.wachwechsel = 2; P.qitems.wohlwollen_nachtwache = true; res.talk = ["Tagwache: „Du hast mich geschlagen, und das ehrlich. Pass auf: Die Nachtwache am Tor kennt jetzt dein Gesicht. Abends und nachts lässt sie dich durch.“", "Tagwache: „Und weil du uns beiden eine Runde gespart hast, nimm das hier mit. Man wird sich an dich erinnern.“"]; res.lines.push("Quest „Wachwechsel“ erfüllt. Du erhältst das Quest-Item „Wohlwollen der Nachtwache“. Das äußere Tor öffnet sich abends und nachts, auch in späteren Runs."); }
+    if (G.loc === "kneipe" && n.id === "wache:Nachtwache" && G.time <= 1 && G.quest.wachwechsel === 0) { G.quest.wachwechsel = 1; res.talk = ["Nachtwache: „Hick. Gut gewürfelt, Slumkind. Hör zu: Die Tagwache hat mich neulich im Farkle vernichtet. Keine Chance hatte ich. Seitdem prahlt sie überall mit ihrem Würfelglück und erzählt jedem, ich könne nichts.“", "Nachtwache: „Du siehst aus wie ein Wicht aus den Slums, und genau deshalb ist das meine Gelegenheit. Du hast mich geschlagen. Schlag jetzt die Tagwache, sobald sie nachmittags oder nachts hier sitzt. Und danach sag ihr, du hättest gegen mich verloren.“", "Nachtwache: „Dann muss sie glauben, ich sei besser als der Mann, der sie besiegt hat. Das frisst sie auf. Und ich sorge dafür, dass am Tor abends und nachts jemand für dich ein gutes Wort einlegt.“"]; res.lines.push("Neue Quest: „Wachwechsel“. Besiege nachmittags oder nachts die Tagwache in der Kneipe."); }
+    else if (G.loc === "kneipe" && n.id === "wache:Tagwache" && G.time >= 2 && G.quest.wachwechsel === 1) { G.quest.wachwechsel = 1.5; res.wache = true; res.talk = ["Tagwache: „Was? Du? Ein Slumkind? Hick … Das war Glück. Reines Würfelglück. Ich lass mich doch nicht von einem Hungerleider schlagen. Wer hat dir das beigebracht?“"]; res.lines.push("Du hast die Tagwache besiegt. Wie antwortest du?"); }
   }
   if (win && fin && n.id === G.spy && !G.quest.tunnel) {
     G.quest.tunnel = 1;
@@ -1117,17 +1140,38 @@ function endDuel(win) {
   }
   res.rolled = D.pScore; res.win = win;
   G.lastResult = res; G.duel = null; view = "map"; save(); render();
-  openSheet(`<h2 class="${win ? "moss" : "rust"}">${win ? "Gewonnen" : "Verloren"}</h2><p class="muted small">${D.pScore} gegen ${D.nScore} Punkte, Ziel ${n.target}.</p>${(res.talk || []).map(l => `<p class="say">${esc(l)}</p>`).join("")}${res.lines.map(l => `<p>${esc(l)}</p>`).join("")}<button class="btn primary full" data-act="close">Weiter</button>`);
+  openSheet(`<h2 class="${win ? "moss" : "rust"}">${win ? "Gewonnen" : "Verloren"}</h2><p class="muted small">${D.pScore} gegen ${D.nScore} Punkte, Ziel ${n.target}.</p>${(res.talk || []).map(l => `<p class="say">${esc(l)}</p>`).join("")}${res.lines.map(l => `<p>${esc(l)}</p>`).join("")}${res.wache ? wacheButtons() : '<button class="btn primary full" data-act="close">Weiter</button>'}`);
+}
+// Entscheidung nach dem Sieg über die Tagwache: Lüge für die Nachtwache oder Verrat an ihr
+function wacheButtons() {
+  return `<button class="btn full" data-act="wache-lie">„Ich habe heute früh gegen die Nachtwache verloren.“</button>
+    <button class="btn primary full" data-act="wache-truth">„Die Nachtwache hat mich auf dich angesetzt. Ich habe sie in Wahrheit geschlagen.“</button>
+    <div class="small muted">Du kannst nur eines tun. Die Lüge öffnet das Tor abends und nachts, der Verrat tagsüber.</div>`;
+}
+function wacheChoose(kind) {
+  if (G.quest.wachwechsel !== 1.5) return;
+  const out = { talk: [], lines: [] };
+  if (kind === "lie") {
+    G.quest.wachwechsel = 2; P.qitems.wohlwollen_nachtwache = true;
+    out.talk = ["Tagwache: „Gegen die Nachtwache? Gegen diese Schlafmütze? Aber … du hast mich geschlagen. Und die hat dich geschlagen. Dann ist sie ja besser als ich.“", "Tagwache: „Das … das darf nicht wahr sein. Ich muss mich setzen. Hick.“", "Nachtwache (am Tor, später): „Man hat mir erzählt, was du gesagt hast. Hahaha. Dafür schulde ich dir was. Abends und nachts gehörst du zu uns.“"];
+    out.lines.push("Quest „Wachwechsel“ erfüllt. Du erhältst das Quest-Item „Wohlwollen der Nachtwache“. Das äußere Tor öffnet sich abends und nachts, auch in späteren Runs.");
+  } else {
+    G.quest.wachwechsel = 3; P.qitems.wohlwollen_tagwache = true;
+    out.talk = ["Tagwache: „Was? Dieser Schleimer! Er wollte, dass ich mich bis auf die Knochen blamiere. Hick. Und du sagst mir das einfach so?“", "Tagwache: „Du hast mehr Anstand als der ganze Wachwechsel zusammen. Das vergesse ich dir nicht. Tagsüber lasse ich dich durch das Tor, und ich sorge dafür, dass es die Kollegen wissen.“"];
+    out.lines.push("Quest „Wachwechsel“ erfüllt. Du erhältst das Quest-Item „Wohlwollen der Tagwache“. Das äußere Tor ist tagsüber für dich offen, auch in späteren Runs.");
+  }
+  save(); render(); showStory(out);
 }
 // ---------- Dialoge (Abschnitt 14, #dialog-view als Sheet) ----------
 const wacheName = () => (G.time < 2 ? "Tagwache" : "Nachtwache");
 const DIALOGS = {
   tor: () => {
-    const q = G.quest.wachwechsel, ok = passOk(), day = G.time < 2;
+    const q = G.quest.wachwechsel, day = G.time < 2, ok = passOk(day);
     const hint = q === 0 ? "Frag in der Kneipe nach der Nachtwache. Tagsüber sitzt sie dort und trinkt. Schlag sie beim Würfeln, dann redet sie vielleicht."
-      : q === 1 ? "Die Nachtwache hat dir den Floh ins Ohr gesetzt? Dann such nachmittags oder nachts die Tagwache in der Kneipe. Wenn die abgelöst ist, sitzt sie dort und ist nicht mehr dienstbereit."
-      : "Du hast die Sache erledigt. Mehr kann ich dir nicht raten.";
-    const pass = day ? "Tagsüber? Das Tor bleibt zu. Komm nachmittags wieder." : ok ? "Du. Ja, die Kollegen haben von dir gesprochen. Abends und nachts darfst du durch. Mach keinen Ärger." : "Nicht ohne Grund. Der Wechsel der Wachen ist heilig, und du gehörst nicht dazu.";
+      : q === 1 ? "Die Nachtwache hat dir etwas aufgetragen? Dann such nachmittags oder nachts die Tagwache in der Kneipe. Wenn sie abgelöst ist, sitzt sie dort und trinkt."
+      : "Du hast dich entschieden. Mehr kann ich dir nicht raten.";
+    const pass = day ? (ok ? "Du bist der Kerl, der mir von der Nachtwache erzählt hat. Das vergesse ich dir nicht. Geh durch." : "Tagsüber bleibt das Tor zu. Ausnahmen gibt es nur für Leute, für die ich ein gutes Wort einlege. Du gehörst nicht dazu.")
+      : (ok ? "Ah, der Kleine, der der Tagwache die Nase gerieben hat. Für mich hast du also verloren, ja? Hahaha. Geh durch, ich schulde dir was." : "Nicht ohne Grund. Der Wechsel der Wachen ist heilig, und du gehörst nicht dazu.");
     return { who: wacheName(), start: "greet", nodes: {
       greet: { text: day ? "Halt. Das Tor ist bei Tageslicht zu. Was willst du?" : "Spät unterwegs. Das Tor ist nicht für jeden offen. Was willst du?",
         choices: [{ t: "Ich will durch.", go: "pass" }, { t: "Wie komme ich hier durch?", go: "hint" }, { t: "Ich will mich stellen.", go: "confirm" }, { t: "Nichts. Ich gehe.", end: true }] },
@@ -1138,7 +1182,10 @@ const DIALOGS = {
   kneipe: () => {
     const q = G.quest.wachwechsel, w = Object.values(NPCS).find(n => n.sched && npcLoc(n) === "kneipe");
     if (!w) return null;
-    const talk = q === 0 ? "Der Hauptmann? Der ist… hick… nicht hier. Frag mich später. Oder schlag mich beim Würfeln, dann erzähl ich dir was über den Wachwechsel." : q === 1 ? "Ah, du bist das. Mein Kamerad, der Nachtwächter, sagt, du kannst würfeln. Tagwache bin ich erst nachmittags wieder. Dann sitze ich hier, und wer mich schlägt, bekommt mein Wort." : "Du hast mein Wort. Wer mich besiegt hat, den lassen wir durch, wenn die Sonne sinkt.";
+    const night = w.id === "wache:Nachtwache";
+    const talk = night
+      ? (q === 0 ? "Hick. Der Wachwechsel? Davon red ich nicht mit jedem. Schlag mich beim Würfeln, dann erzähl ich dir was." : q === 1 ? "Du hast mich geschlagen, ja. Jetzt hol dir die Tagwache, wenn sie nachmittags hier sitzt. Und denk dran: Du hast gegen mich verloren. Sag das ruhig laut." : q === 2 ? "Hat der Bock es geschluckt? Hick. Hervorragend. Abends und nachts hast du bei mir am Tor einen Stein im Brett." : "Du hast mich bei ihm verpfiffen? Hick. Hätt ich mir denken können. Am Tor lasse ich dich abends trotzdem nicht durch.")
+      : (q === 1 ? "Wer bist du denn? Ich habe die Nachtwache neulich so vernichtet, dass sie den Dienst kaum antreten konnte. Du willst es mit mir aufnehmen? Dann würfel." : q === 2 ? "Gegen die Nachtwache verloren? Und mich geschlagen? Hick … Ich muss mich setzen." : q === 3 ? "Du hast ehrlicher gehandelt als diese Schlafmütze. Tagsüber lasse ich dich durch." : "Tagwache bin ich erst nachmittags. Wer mich dann schlägt, mit dem rede ich.");
     return { who: w.name, start: "greet", nodes: {
       greet: { text: "Hick. Willkommen in der Kneipe. Die Stadtwache ist hier im Dienst, glaub mir. Auch wenn es nicht so aussieht.", choices: [{ t: "Ich will mich stellen.", go: "stellen" }, { t: "Was weißt du über den Wachwechsel?", go: "talk" }, { t: "Ist dir hier etwas Seltsames aufgefallen?", go: "odd" }, { t: "Prost. Ich gehe.", end: true }] },
       stellen: { text: "Stellen? Bei mir? Ich kann kaum stehen. Geh zum Stadttor, dort steht eine Wache, die nüchtern ist.", choices: [{ t: "Zurück", go: "greet" }] },
@@ -1417,6 +1464,7 @@ function migrate() {
   if (!G || G.v !== 2) return newRun();
   G.st = G.st || {}; G.flags = G.flags || {}; G.roam = G.roam || {}; G.disc = G.disc || 0; if (G.shop2 === undefined) G.shop2 = null;
   initStory(G.npcs, G.rare);
+  G.vis = G.vis || {}; if (LOCS[G.loc]) G.vis[G.loc] = true; if (G.prev && LOCS[G.prev]) G.vis[G.prev] = true;
   G.quest = G.quest || { wachwechsel: 0 }; if (G.quest.tunnel === undefined) G.quest.tunnel = 0;
   if (!G.spy) G.spy = pick(SPY_CANDIDATES);
   if (!G.npcs["generalsaal:General Kharzul Eisenhand"]) initTunnel(G.npcs, G.rare);   // Läufe aus älteren Prototypen passen nicht zur neuen Welt
@@ -1489,11 +1537,91 @@ function renderHeader() {
   document.getElementById("h-guard").innerHTML = `<span>Wachendruck ${p}/${pmax()}</span><span class="seg" role="img" aria-label="Wachendruck ${p} von ${pmax()}">${Array.from({ length: pmax() }, (_, i) => `<i class="${i < p ? (p >= pmax() - 2 ? "hot" : "on") : ""}"></i>`).join("")}</span>`;
 }
 function renderTabs() {
-  const tabs = [["map", "Ort"], ["duel", "Duell"], ["bag", "Tasche"], ["comp", "Kompendium"], ["more", "Mehr"]];
+  const tabs = [["world", "Karte"], ["map", "Ort"], ["duel", "Duell"], ["bag", "Tasche"], ["comp", "Kompendium"], ["more", "Mehr"]];
   const lock = !!G.duel;
   document.getElementById("tabs").innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" ${view === k ? 'aria-current="page"' : ""} ${lock && k !== "duel" && k !== "comp" ? "disabled" : ""} ${!lock && k === "duel" ? "disabled" : ""}>${l}</button>`).join("");
 }
 
+
+// ---------- Karte ----------
+let selLoc = null;
+const MAP_POS = {
+  aue: [50, 45], ruine: [50, 130], dorf: [130, 90], handel: [130, 190], saal: [210, 45], schloss: [290, 45], schlosstor: [290, 125], gasthof: [215, 140],
+  stadttor: [215, 240], markt: [290, 205], gilde: [320, 290], kanal: [310, 380], kaserne: [225, 335], gerber: [120, 325], slums: [45, 410], gasse: [200, 430],
+  wohn: [90, 530], kneipe: [80, 640], hafen: [190, 610], strand: [235, 705],
+  tunnel1: [325, 465], tunnel2: [325, 540], tunnel3: [325, 615], generalsaal: [330, 705]
+};
+const MAP_SHORT = { handel: "Handelsstr.", slums: "Slums", wohn: "Wohnviertel", gasse: "Gasse", kneipe: "Kneipe", hafen: "Hafen", strand: "Strand", gerber: "Gerberviertel", kaserne: "Kaserne", dorf: "Dorf", aue: "Aue", ruine: "Ruine",
+  stadttor: "Stadttor", markt: "Marktplatz", gilde: "Gildeviertel", kanal: "Kanalisation", gasthof: "Gasthof", schlosstor: "Schlosstor", schloss: "Schloss", saal: "Torsaal", tunnel1: "Spähgang", tunnel2: "Lagerhöhle", tunnel3: "Kriegskammer", generalsaal: "Hohlsaal" };
+const LOC_TEXT = {
+  handel: "Breite Karrenstraße zwischen Stadttor, Dorf und den Vierteln. Hier wird gefeilscht und gewürfelt. Wer Silber hat, ist willkommen.",
+  slums: "Schiefe Hütten, Pfützen, Hunger. Hier beginnt dein Weg. Die Gegner sind arm und vorsichtig. Ein Gitter führt in die Kanalisation.",
+  wohn: "Enge Häuser mit Wäscheleinen. Anwohner und Handwerker würfeln gern um Kleingeld. Von hier geht es zur Gasse und zur Kneipe.",
+  gasse: "Dunkle Seitengasse. Ein Händler kauft und verkauft Würfel, und hinter den Fässern versteckt sich ein Schwarzmarkt für den, der den richtigen Namen kennt.",
+  kneipe: "Verrauchter Schankraum voller Zecher, Söldner und Kartenhaie. Tagsüber trinkt hier die Nachtwache, abends die Tagwache.",
+  hafen: "Salzgeruch, Möwen und Kisten. Matrosen und Zöllner würfeln um große Einsätze. Der Strand liegt gleich nebenan.",
+  strand: "Einsamer Küstenstreifen. Schmuggler und Fischer machen hier Geschäfte, von denen die Stadt nichts wissen soll.",
+  gerber: "Der Gestank der Gerberlauge hängt über den Gassen. Der Weg führt zur Kaserne.",
+  kaserne: "Exerzierhof und Waffenkammer der Stadtwache. Disziplinierte Gegner, die selten Fehler machen.",
+  dorf: "Ein kleines Dorf vor den Toren. Bauern und Kräuterfrauen. Von hier führen Pfade zur Aue und zur Ruine.",
+  aue: "Weite Wiesen außerhalb der Stadt. Wer aus den Höhlen der Vorhut entkommt, tritt hier wieder ans Licht.",
+  ruine: "Verfallene Mauern auf einem Hügel. Hier würfeln Jäger, die keine Gnade kennen. Hohe Ziele, hohe Belohnung.",
+  stadttor: "Das große äußere Tor. Tagsüber hält die Tagwache es geschlossen, abends und nachts die Nachtwache. Ohne ihre Gunst kommst du nicht durch.",
+  markt: "Prächtiger Marktplatz der Reichen. Kaufleute, Wechsler und die Schneiderin Fiora. Ohne Bürgerkleidung wirst du hier nicht ernst genommen.",
+  gilde: "Das Viertel der Zünfte und Banken. Meister, Schreiber und Goldschmiede, die nur Bürger empfangen.",
+  kanal: "Feuchte Tunnel unter der Stadt. Ratten, Schlamm und ein Schwarzhändler, der Schlüssel verkauft. Verbindet Slums, Markt und Gildeviertel.",
+  gasthof: "Vornehmer Gasthof für Edelleute. Wer hier würfelt, spielt um hohe Einsätze.",
+  schlosstor: "Das Tor zum Schloss. Nur wer wie ein Adliger aussieht, wird durchgelassen.",
+  schloss: "Prunkvolle Hallen des Hofes. Adelskleidung ist Pflicht. Grafen und Hofdamen sitzen am Würfeltisch.",
+  saal: "Der Torsaal, das Herz der Macht. Kanzler und Siegelbewahrer erwarten dich, die härtesten Gegner der Stadt.",
+  tunnel1: "Enger Gang unter der Kanalisation, von den Spähern der Vorhut bewacht. Hier unten gibt es keinen Wachendruck.",
+  tunnel2: "Eine Lagerhöhle voller Vorräte und Würfler. Der Weg führt tiefer.",
+  tunnel3: "Die Kriegskammer der Vorhut. Fünf harte Gegner stehen zwischen dir und dem General.",
+  generalsaal: "Der Hohlsaal von General Kharzul Eisenhand. Besiegst du ihn, öffnet sich ein Ausgang zur Aue."
+};
+const mapKnown = k => { const v = G.vis || {}; if (v[k] || k === G.loc) return true; if (LOCS[k].tunnel && !G.quest.tunnel) return false; return Object.keys(v).some(o => LOCS[o] && nbOf(o).includes(k)) || nbOf(G.loc).includes(k); };
+function mapRoute(from, to) {
+  const prev = { [from]: null }, q = [from];
+  while (q.length) { const c = q.shift(); if (c === to) break; for (const n of nbOf(c)) if (!(n in prev) && LOCS[n] && !(LOCS[n].tunnel && !G.quest.tunnel)) { prev[n] = c; q.push(n); } }
+  if (!(to in prev)) return null;
+  const path = []; for (let c = to; c; c = prev[c]) path.unshift(c); return path;
+}
+function mapDetail(k) {
+  const L = LOCS[k], here = k === G.loc, adj = nbOf(G.loc).includes(k), bl = adj ? blockReason(G.loc, k) : null;
+  const npcs = Object.values(NPCS).filter(n => npcLoc(n) === k), open = npcs.filter(n => !(G.npcs[n.id] && (G.npcs[n.id].out || G.npcs[n.id].respawn))).length;
+  const facts = [];
+  facts.push(`Ziel ${L.target} Punkte, Gegnerprofil ${L.profile}`);
+  if (!L.tunnel) facts.push(`Wachendruck dort: ${pr(k)} von ${pmax()}`); else facts.push("Kein Wachendruck");
+  if (npcs.length) facts.push(`${open} von ${npcs.length} Gegnern würfeln noch`);
+  if (L.clothes === "adel") facts.push(`Adelskleidung nötig${G.items.adel ? " (hast du)" : ""}`); else if (L.clothes === "buerger") facts.push(`Bürgerkleidung nötig${G.items.buerger || G.items.adel ? " (hast du)" : ""}`);
+  if (L.dealer) facts.push("Händler" + (P.unlocks.schwarzmarkt ? " und Schwarzmarkt" : ""));
+  if (L.tailor) facts.push("Schneiderin Fiora: Bürger- und Adelskleidung");
+  if (L.gorm) facts.push("Schwarzhändler Gorm: Kanalisationsschlüssel");
+  let way = "";
+  if (here) way = `<div class="small"><b>Du bist hier.</b></div>`;
+  else if (adj) way = bl ? `<div class="small rust">Gesperrt: ${esc(bl)}</div>` : `<button class="btn primary full" data-travel="${k}">Reisen nach ${esc(L.name)}${k === G.prev ? " (zurück)" : ""} · Druck dort ${arrivalPressure(k)}</button>`;
+  else { const path = mapRoute(G.loc, k); way = path ? `<div class="small"><b>Weg:</b> ${path.map(p => esc(LOCS[p].name)).join(" → ")}</div><div class="small muted">Tippe den nächsten Ort auf dem Weg an, um dorthin zu reisen.</div>` : `<div class="small muted">Von hier gibt es noch keinen bekannten Weg.</div>`; }
+  return `<div class="card stack" style="gap:8px"><h3>${esc(L.name)}</h3><div class="say">${esc(LOC_TEXT[k] || "")}</div>${facts.map(f => `<div class="small muted">${esc(f)}</div>`).join("")}${way}</div>`;
+}
+function viewWorld() {
+  if (!selLoc || !LOCS[selLoc] || !mapKnown(selLoc)) selLoc = G.loc;
+  const known = Object.keys(LOCS).filter(k => MAP_POS[k] && mapKnown(k) && !(LOCS[k].tunnel && !G.quest.tunnel));
+  const set = new Set(known), seen = new Set(), edges = [];
+  for (const a of known) for (const b of nbOf(a)) { if (!set.has(b)) continue; const key = [a, b].sort().join("|"); if (seen.has(key) || key === "aue|generalsaal") continue; seen.add(key); edges.push([a, b]); }
+  const under = k => LOCS[k].tunnel || k === "kanal";
+  const lines = edges.map(([a, b]) => { const [x1, y1] = MAP_POS[a], [x2, y2] = MAP_POS[b]; const adjHere = (a === G.loc || b === G.loc); const bl = adjHere ? blockReason(G.loc, a === G.loc ? b : a) : null;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="me ${under(a) || under(b) ? "ug" : ""} ${bl ? "bl" : adjHere ? "hot" : ""}"/>`; }).join("");
+  const exit = set.has("generalsaal") && cleared("generalsaal") ? `<text x="${MAP_POS.generalsaal[0] - 6}" y="${MAP_POS.generalsaal[1] + 44}" class="ml" text-anchor="middle">Ausgang zur Aue</text>` : "";
+  const nodes = known.map(k => { const [x, y] = MAP_POS[k], vis = !!(G.vis && G.vis[k]) || k === G.loc, here = k === G.loc, adj = nbOf(G.loc).includes(k), bl = adj && blockReason(G.loc, k), hot = !LOCS[k].tunnel && pr(k) >= 8;
+    return `<g data-maploc="${k}" role="button" tabindex="0" aria-label="${esc(LOCS[k].name)}" class="mn ${here ? "here" : ""} ${vis ? "" : "unk"} ${selLoc === k ? "sel" : ""} ${bl ? "bl" : ""} ${hot ? "hot" : ""} ${LOCS[k].tunnel ? "tun" : ""}">
+      <circle cx="${x}" cy="${y}" r="26" fill="transparent"/><circle cx="${x}" cy="${y}" r="${here ? 15 : 13}" class="mc"/>${here ? `<circle cx="${x}" cy="${y}" r="5" class="md"/>` : ""}${bl ? `<text x="${x}" y="${y + 4}" text-anchor="middle" class="mk">✕</text>` : ""}
+      <text x="${x}" y="${y + 29}" text-anchor="middle" class="ml">${esc(MAP_SHORT[k])}</text></g>`; }).join("");
+  const mapH = Math.max(...known.map(k => MAP_POS[k][1])) + 48;
+  return `<div class="stack"><div><h2>Karte</h2><div class="sub">Tippe einen Ort an. Gestrichelte Wege liegen unter der Erde.</div></div>
+    <div class="card" style="padding:6px"><svg class="worldmap" viewBox="0 0 360 ${mapH}" role="group" aria-label="Karte der Umgebung">${lines}${nodes}${exit}</svg></div>
+    <div class="small muted maplegend"><span><i class="lg here"></i>Du</span><span><i class="lg"></i>besucht</span><span><i class="lg unk"></i>noch nicht besucht</span><span><i class="lg bl"></i>gesperrt</span></div>
+    ${mapDetail(selLoc)}</div>`;
+}
 function viewMap() {
   const L = LOCS[G.loc];
   const list = Object.values(NPCS).filter(n => npcLoc(n) === G.loc);
@@ -1634,7 +1762,7 @@ function viewBag() {
   return `<div class="stack"><div><h2>Tasche</h2><div class="sub">${G.active.length} von 6 Würfeln aktiv. Du kannst auch mit weniger würfeln.</div></div>
     ${rows || `<div class="card muted">Du hast keine Würfel mehr. Mehr dazu unter „Mehr“.</div>`}
     <div class="card stack" style="gap:6px"><h3>Kleidung</h3><div class="small">${[G.items.buerger && "Bürgerkleidung", G.items.adel && "Adelskleidung"].filter(Boolean).join(", ") || "Keine"}</div>
-      <h3>Quest-Items</h3><div class="small">${[hasQ("kanalisationsschluessel") && "Kanalisationsschlüssel", hasQ("wohlwollen_nachtwache") && "Wohlwollen der Nachtwache"].filter(Boolean).join(", ") || "Keine"}</div></div>
+      <h3>Quest-Items</h3><div class="small">${[hasQ("kanalisationsschluessel") && "Kanalisationsschlüssel", hasQ("wohlwollen_nachtwache") && "Wohlwollen der Nachtwache", hasQ("wohlwollen_tagwache") && "Wohlwollen der Tagwache"].filter(Boolean).join(", ") || "Keine"}</div></div>
     <div class="card stack" style="gap:8px"><h3>Prototyp-Hilfen</h3>
       <label class="toggle"><input type="checkbox" id="stats" ${showStats ? "checked" : ""}> Statistik der Würfel anzeigen (aus deinen bisherigen Würfen)</label>
       <label class="toggle"><input type="checkbox" id="dbg" ${dbg ? "checked" : ""}> Echte Eigenschaften zeigen (Test)</label>
@@ -1705,10 +1833,11 @@ function viewMore() {
     <div class="card stack" style="gap:6px"><h3>Freischaltungen</h3>
       <div class="small">Schwarzmarkt in der Gasse: ${P.unlocks.schwarzmarkt ? "freigeschaltet" : "gesperrt (Sieg über Schatten-Gretel)"}</div>
       <div class="small">Kanalisationsschlüssel: ${hasQ("kanalisationsschluessel") ? "im Besitz" : "nicht gekauft (Gorm, 500 Silber)"}</div>
-      <div class="small">Wohlwollen der Nachtwache: ${hasQ("wohlwollen_nachtwache") ? "im Besitz" : "noch nicht erhalten"}</div>
+      <div class="small">Wohlwollen der Nachtwache (Tor abends und nachts): ${hasQ("wohlwollen_nachtwache") ? "im Besitz" : "noch nicht erhalten"}</div>
+      <div class="small">Wohlwollen der Tagwache (Tor tagsüber): ${hasQ("wohlwollen_tagwache") ? "im Besitz" : "noch nicht erhalten"}</div>
       <h3>Quests</h3>
       <div class="small">Die Vorhut: ${G.quest.tunnel >= 2 ? "erledigt, die Stadt ist gerettet" : G.quest.tunnel === 1 ? "Der Zugang liegt am Ende der Inneren Kanalisation. Besiege alle Gegner Raum für Raum und zuletzt den General" : "nicht begonnen. Unter den Gästen der Kneipe sitzt ein Fremder, der zu viel fragt. Besiege ihn im letzten Duell"}</div>
-      <div class="small">Wachwechsel: ${hasQ("wohlwollen_nachtwache") || G.quest.wachwechsel >= 2 ? "erledigt" : G.quest.wachwechsel === 1 ? "Schritt 2: nachmittags oder nachts die Tagwache in der Kneipe besiegen" : "nicht begonnen: tagsüber die Nachtwache in der Kneipe besiegen"}</div>
+      <div class="small">Wachwechsel: ${G.quest.wachwechsel >= 2 ? "erledigt" : G.quest.wachwechsel === 1.5 ? "Du musst der Tagwache antworten" : G.quest.wachwechsel === 1 ? "Schritt 2: nachmittags oder nachts die Tagwache in der Kneipe besiegen" : "nicht begonnen: tagsüber die Nachtwache in der Kneipe besiegen"}</div>
       <div class="small muted">Freischaltungen und Quest-Items bleiben nach einem Run erhalten. Kleidung und der Queststand ohne Quest-Item verfallen.</div></div>
     <div class="card stack" style="gap:6px"><h3>Geschichten</h3>${Object.keys(STORIES).map(id => { const S = STORIES[id], st = G.st[id] || {}; return `<div class="small"><b>${esc(S.name)}</b>: ${st.done ? "erledigt" : st.on ? esc(hintOf(S, st)) : "nicht begonnen. " + esc(S.start)}</div>`; }).join("")}</div>
     <div class="card stack" style="gap:6px"><h3>Erfolge</h3>${Object.keys(ACH).map(k => `<div class="small">${P.achievements[k] ? `★ ${ACH[k]} (${P.achievements[k].count}×)` : `<span class="muted">${ACH[k]}: noch nicht erreicht</span>`}</div>`).join("")}</div>
@@ -1742,7 +1871,7 @@ function render() {
   if (!G.duel && view === "duel") view = "map";
   applyTier(); renderHeader(); renderTabs();
   const m = document.getElementById("main"); const st = m.scrollTop;
-  m.innerHTML = { map: viewMap, duel: viewDuel, bag: viewBag, comp: viewComp, more: viewMore }[view]();
+  m.innerHTML = { world: viewWorld, map: viewMap, duel: viewDuel, bag: viewBag, comp: viewComp, more: viewMore }[view]();
   m.scrollTop = st;
 }
 function openSheet(html, tall) { document.getElementById("sheet-root").innerHTML = `<div class="sheet-wrap"><div class="sheet${tall ? " tall" : ""}" role="dialog" aria-modal="true">${html.includes('data-act="close"') ? '<button class="sheet-x" data-act="close" aria-label="Schließen">✕</button>' : ""}${html}</div></div>`; }
@@ -1763,6 +1892,7 @@ document.addEventListener("pointerdown", e => {
 document.addEventListener("pointermove", e => { if (lpTimer && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 10) clearTimeout(lpTimer); });
 document.addEventListener("click", e => {
   const inf = e.target.closest("[data-info]"); if (inf) return openDieInfo(inf.dataset.info);
+  const ml = e.target.closest("[data-maploc]"); if (ml) { selLoc = ml.dataset.maploc; return render(); }
   const t = e.target.closest("button, [data-act]"); if (!t) return;
   if (t.dataset.tab) { view = t.dataset.tab; return render(); }
   if (t.dataset.travel) return travel(t.dataset.travel);
@@ -1797,6 +1927,8 @@ document.addEventListener("click", e => {
   else if (a === "after-farkle") endTurnAfterFarkle();
   else if (a === "giveup") giveUp();
   else if (a === "talk-kneipe") talk("kneipe");
+  else if (a === "wache-lie") wacheChoose("lie");
+  else if (a === "wache-truth") wacheChoose("truth");
   else if (a === "devtap" || a.startsWith("dev-")) devAct(a);
   else if (a === "test-sound") { FX.play("roll"); setTimeout(() => FX.play("bank"), 450); }
   else if (a === "comp-save") {
@@ -1860,6 +1992,7 @@ function tutorial(i) {
   render();
   if (G.duel && G.duel.phase === "npc") npcTurn();
   if (!(P.settings && P.settings.tutorialDone)) tutorial(0);
+  else if (G.quest && G.quest.wachwechsel === 1.5) openSheet(`<h2>Die Tagwache</h2><p class="say">Tagwache: „Wer hat dir das beigebracht? Das war Glück. Reines Glück.“</p>${wacheButtons()}`);
 })();
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) { /* Zustand liegt in localStorage */ }
 </script>

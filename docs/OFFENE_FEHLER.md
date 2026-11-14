@@ -12,6 +12,14 @@ Stand 14.11.2026, Version Cache v11. Wird nach Testende gesammelt abgearbeitet. 
   - Gleichmäßige Spielregeln: Fünf gleiche = 2000, deshalb Verdacht auf Fehlzuordnung bei vier Würfeln plus Hot-Dice-Folgewurf.
 - **Nächster Schritt:** Spielstand oder genaue Würfelzusammenstellung des Nutzers erfragen und per Test nachstellen, danach in Engine und Tests (`engine.test.js`) einen Fall ergänzen.
 
+## 2. Wachwechsel-Quest (erledigt, Cache v12)
+- Texte neu: Die Tagwache hat die Nachtwache im Farkle vernichtet und prahlt damit. Die Nachtwache bittet den Spieler, die Tagwache zu schlagen und ihr danach zu erzählen, er habe gegen die Nachtwache verloren.
+- Neue Entscheidung nach dem Sieg über die Tagwache: Lüge (Wohlwollen der Nachtwache, Tor abends und nachts) oder Verrat (Wohlwollen der Tagwache, Tor tagsüber). Quest-Item `wohlwollen_tagwache` ist neu. `G.quest.wachwechsel`: 1,5 = Entscheidung offen (wird nach Neuladen wieder angeboten), 2 = Lüge, 3 = Verrat.
+
+## 3. Karten-Tab (erledigt, Cache v12, wartet auf Abnahme)
+- Neuer Reiter „Karte“ vor „Ort“. Zeigt bekannte Orte mit Verbindungen (Nebel: besucht oder Nachbar eines besuchten Ortes), Tippen zeigt Beschreibung, Wachendruck, Anforderungen und Weg. Reisen per Knopf in der Beschreibung. Der Tab „Ort“ bleibt unverändert bis zur Abnahme.
+- Neu im Spielstand: `G.vis` (besuchte Orte).
+
 ## Vorlage für weitere Einträge
 - **Beobachtet:** …
 - **Erwartet:** …
