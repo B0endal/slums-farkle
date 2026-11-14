@@ -1,5 +1,10 @@
 import re
+import base64
 s=open('game.src.html').read()
+def ff(fam,wt,fn):
+    b=base64.b64encode(open('fonts/'+fn,'rb').read()).decode()
+    return '@font-face{font-family:"%s";font-weight:%s;font-style:normal;font-display:swap;src:url(data:font/woff2;base64,%s) format("woff2")}'%(fam,wt,b)
+fonts='<style>'+ff('Pirata One',400,'pirata-one-latin-400-normal.woff2')+ff('Alegreya Sans',400,'alegreya-sans-latin-400-normal.woff2')+ff('Alegreya Sans',700,'alegreya-sans-latin-700-normal.woff2')+'</style>\n'
 eng=open('engine.js').read()
 names=open('dicenames.js').read()
 dice=open('dice.json').read()
@@ -21,6 +26,6 @@ reg='''<script>
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 </script>
 '''
-s=head+s+reg
+s=head+fonts+s+reg
 open('index.html','w').write(s)
 print(len(s))

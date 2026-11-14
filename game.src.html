@@ -7,21 +7,34 @@
 /* Layout: eine Handy-App im Hochformat. Kopfzeile mit Silber, Zeit und Wachendruck, Inhalt scrollt, untere Tab-Leiste.
    Ein Ort, der nach Silber riecht: Gassenschatten als Grund, Würfel aus Knochen, Silber als Akzent, Rost für Gefahr. */
 :root {
-  --bg: #101318;
-  --surface: #1a1f27;
-  --surface2: #232a34;
-  --line: #333c49;
-  --fg: #ebe6d8;
-  --muted: #98a3b0;
-  --silver: #aec2d4;
-  --rust: #d2644b;
-  --moss: #8fb276;
+  /* Stufe 1: Slums. Ruß, nasses Holz, angelaufenes Zinn. */
+  --bg: #0f0d0b;
+  --surface: #1d1814;
+  --surface2: #2a231b;
+  --line: #43392c;
+  --fg: #e8dfca;
+  --muted: #a99d89;
+  --silver: #bdb7a4;
+  --rust: #dc7253;
+  --moss: #96b072;
   --bone: #ece5d2;
   --bone-shade: #cfc6ad;
   --ink: #1c1b18;
+  --on-accent: #17130f;
+  --grain: .36;
   --font-display: "Pirata One", "Georgia", serif;
   --font-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
+}
+/* Stufe 2: Bürgerkleidung. Gegerbtes Leder, Bronze, weniger Schmutz. */
+html[data-tier="buerger"] {
+  --bg: #12100c; --surface: #221c14; --surface2: #30271c; --line: #54442f;
+  --fg: #efe6d0; --muted: #b3a68e; --silver: #cfa66a; --on-accent: #1a1209; --grain: .24;
+}
+/* Stufe 3: Adelskleidung. Tiefes Purpur, Gold, sauber. */
+html[data-tier="adel"] {
+  --bg: #0e0b12; --surface: #1c1622; --surface2: #2a2133; --line: #5a4a35;
+  --fg: #f4ecd8; --muted: #b9acc0; --silver: #dcb85e; --on-accent: #1a1308; --grain: .12;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -190,6 +203,57 @@ textarea { min-height: 84px; resize: vertical; word-break: break-all; }
 .toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 .toggle input { width: 22px; height: 22px; accent-color: var(--silver); }
 .idline { font-family: ui-monospace, Menlo, monospace; font-size: 1.15rem; letter-spacing: .06em; color: var(--silver); }
+
+/* ---------- Optik: düster, mittelalterlich, abgenutzt. Gilt nur für Farbe und Textur, nicht für Layout. ---------- */
+html { background: var(--bg); }
+body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; transition: opacity .9s ease; }
+/* Körnung wie rauer Stoff und Papier */
+body::before { z-index: 90; opacity: var(--grain); mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 -.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+/* Ränder dunkel, dazu Flecken von Ruß, Nässe und altem Blut. Nur in den Slums ganz sichtbar. */
+body::after { z-index: 89; opacity: 1;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 52%, #000b 112%),
+    radial-gradient(circle at 10% 14%, #4a361f40 0, transparent 24%),
+    radial-gradient(circle at 92% 62%, #1f2a1c55 0, transparent 28%),
+    radial-gradient(circle at 24% 94%, #5a1f1438 0, transparent 22%),
+    radial-gradient(circle at 78% 6%, #0000007a 0, transparent 20%); }
+html[data-tier="buerger"] body::after { background:
+    radial-gradient(ellipse at 50% 50%, transparent 58%, #0009 114%),
+    radial-gradient(circle at 90% 10%, #4a361f26 0, transparent 22%),
+    radial-gradient(circle at 8% 90%, #4a361f1c 0, transparent 20%); }
+html[data-tier="adel"] body::after { background:
+    radial-gradient(ellipse at 50% 50%, transparent 62%, #000a 116%),
+    radial-gradient(ellipse at 50% -8%, #dcb85e26 0, transparent 48%); }
+html.calm body::before, html.calm body::after { transition: none; }
+#app { background: transparent; position: relative; z-index: 1; }
+header.top { border-bottom: 3px double var(--line); background: linear-gradient(to bottom, #0000, #0005); }
+.brand { text-shadow: 0 2px 0 #000a; color: var(--fg); }
+h2, .big { text-shadow: 0 2px 0 #000a; }
+h3 { color: var(--silver); }
+.card, .score .box { border-radius: 3px; border-color: var(--line);
+  background: linear-gradient(160deg, #ffffff07, #0000 40%, #00000030), var(--surface);
+  box-shadow: inset 0 0 0 1px #0007, inset 0 0 22px #0006, 0 2px 0 #0008; }
+.banner { border-radius: 3px; box-shadow: inset 0 0 14px #0006; }
+.btn { border-radius: 3px; border: 1px solid var(--line);
+  background: linear-gradient(to bottom, #ffffff0d, #0000 45%, #0000003a), var(--surface2);
+  box-shadow: inset 0 1px 0 #ffffff12, inset 0 -2px 0 #0006, 0 2px 0 #000a; text-shadow: 0 1px 0 #0008; }
+.btn:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 4px #000a; }
+.btn.primary { background: linear-gradient(to bottom, #ffffff30, #0000 50%, #00000030), var(--silver); color: var(--on-accent); border-color: #0008; text-shadow: 0 1px 0 #ffffff40;
+  box-shadow: inset 0 1px 0 #ffffff55, inset 0 -2px 0 #0004, 0 2px 0 #000a; }
+.btn.danger { background: transparent; }
+nav.tabs { border-top: 3px double var(--line); background: linear-gradient(to bottom, #0000, #0005), var(--surface); }
+nav.tabs button[aria-current="page"] { border-top-color: var(--silver); text-shadow: 0 0 10px #0009; }
+.sheet { border-top: 3px double var(--silver); border-radius: 4px 4px 0 0; box-shadow: 0 -8px 30px #000c, inset 0 0 40px #0005;
+  background: linear-gradient(170deg, #ffffff08, #0000 35%), var(--surface); }
+.sheet-wrap { background: #000c; }
+.say { font-family: var(--font-body); }
+.tag { border-radius: 2px; }
+/* Würfel: in den Slums schmutzig, beim Bürger gepflegt, beim Adel blank */
+.die:not(.sel):not(.mini) { filter: sepia(.28) brightness(.93) contrast(1.02); }
+html[data-tier="buerger"] .die:not(.sel):not(.mini) { filter: sepia(.12) brightness(.97); }
+html[data-tier="adel"] .die:not(.sel):not(.mini) { filter: none; }
+@media (prefers-reduced-motion: reduce) { body::before, body::after { transition: none; } }
 </style>
 
 <div id="app">
@@ -1267,11 +1331,18 @@ function viewMore() {
     <div class="card stack" style="gap:8px"><h3>Aufgeben</h3><div class="small muted">Der Weg des Gerechten: Geh zur Wache am Stadttor (nicht in der Kneipe, dort ist sie betrunken) und stell dich. Dein Run endet, Kompendium, Namen, Unlocks und Quest-Items bleiben.</div></div></div>`;
 }
 
+const TIER_COLOR = { slums: "#0f0d0b", buerger: "#12100c", adel: "#0e0b12" };
+function applyTier() {
+  const t = G.items && G.items.adel ? "adel" : G.items && G.items.buerger ? "buerger" : "slums";
+  if (document.documentElement.dataset.tier === t) return;
+  document.documentElement.dataset.tier = t;
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", TIER_COLOR[t]);
+}
 function render() {
   if (!G) return;
   if (G.duel && view !== "duel" && view !== "comp") view = "duel";
   if (!G.duel && view === "duel") view = "map";
-  renderHeader(); renderTabs();
+  applyTier(); renderHeader(); renderTabs();
   const m = document.getElementById("main"); const st = m.scrollTop;
   m.innerHTML = { map: viewMap, duel: viewDuel, bag: viewBag, comp: viewComp, more: viewMore }[view]();
   m.scrollTop = st;
