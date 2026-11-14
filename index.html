@@ -1299,7 +1299,7 @@ const STORIES = {
     avail: () => G.items.buerger || G.items.adel,
     intro: { at: "gilde", lines: ["Gildenmeister: „Bürgerkleidung, saubere Hände. Du willst in den Bund? Dann bestehe drei Prüfungen. Jede hat eine Auflage. Erfüllst du sie nicht, zählt der Sieg nicht.“"] },
     steps: [
-      { ev: "win", at: "gilde", npc: "gilde:Gildenmeister", cond: c => c.act.length >= 3 && allStd(c.act), why: "Die Auflage war nicht erfüllt: nur Standardwürfel, mindestens drei aktiv.", hint: "Prüfung 1: Besiege den Gildenmeister nur mit Standardwürfeln (mindestens 3 aktiv).", say: ["Gildenmeister: „Sauber gespielt. Erste Prüfung bestanden.“"] },
+      { ev: "win", at: "gilde", npc: "gilde:Gildenmeister", cond: c => c.act.length >= 3 && allStd(c.act), why: c => `Die Auflage war nicht erfüllt: nur Standardwürfel, mindestens drei aktiv. Aktiv waren: ${c.act.map(x => cname(x.id)).join(", ") || "keine"}.`, hint: "Prüfung 1: Besiege den Gildenmeister nur mit Standardwürfeln (mindestens 3 aktiv).", say: ["Gildenmeister: „Sauber gespielt. Erste Prüfung bestanden.“"] },
       { ev: "win", at: "gilde", npc: "gilde:Zunftschreiberin Adelheid", cond: c => !c.D.pFarkles, why: "Die Auflage war nicht erfüllt: Du hattest ein Farkle.", hint: "Prüfung 2: Besiege Zunftschreiberin Adelheid ohne ein einziges Farkle.", say: ["Adelheid trägt deinen Namen ins Zunftbuch ein. „Zweite Prüfung bestanden.“"] },
       { ev: "win", at: "gilde", npc: "gilde:Goldschmied Valentin", cond: c => c.act.length <= 4, why: "Die Auflage war nicht erfüllt: höchstens vier aktive Würfel.", hint: "Prüfung 3: Besiege Goldschmied Valentin mit höchstens vier aktiven Würfeln.", say: ["Valentin: „Mit vier Würfeln? Dann bist du entweder verrückt oder gut. Dritte Prüfung bestanden.“"] },
       { ev: "final", at: "gilde", npc: "gilde:Bankier Melchior", hint: "Meisterprüfung: Besiege Bankier Melchior im letzten Duell.", say: ["Melchior: „Der Bund hat einen neuen Meister. Mein Silber gehört dir, mein Siegel auch.“"] }
@@ -1416,7 +1416,7 @@ function storyEvent(ev, ctx, out) {
     if (step.tm && !step.tm.includes(G.time)) return;
     const n = typeof step.npc === "function" ? step.npc() : step.npc;
     if (n && n !== ctx.npc) return;
-    if (step.cond && !step.cond(ctx, st)) { if (step.why) out.lines.push(step.why); if (step.fail) step.fail(); if (step.back != null) st.s = step.back; return; }
+    if (step.cond && !step.cond(ctx, st)) { if (step.why) out.lines.push(typeof step.why === "function" ? step.why(ctx) : step.why); if (step.fail) step.fail(); if (step.back != null) st.s = step.back; return; }
     storyAdvance(id, out);
   });
 }
