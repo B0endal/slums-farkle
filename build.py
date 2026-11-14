@@ -4,7 +4,7 @@ s=open('game.src.html').read()
 def ff(fam,wt,fn):
     b=base64.b64encode(open('fonts/'+fn,'rb').read()).decode()
     return '@font-face{font-family:"%s";font-weight:%s;font-style:normal;font-display:swap;src:url(data:font/woff2;base64,%s) format("woff2")}'%(fam,wt,b)
-fonts='<style>'+ff('Pirata One',400,'pirata-one-latin-400-normal.woff2')+ff('Alegreya Sans',400,'alegreya-sans-latin-400-normal.woff2')+ff('Alegreya Sans',700,'alegreya-sans-latin-700-normal.woff2')+'</style>\n'
+fonts='<style>'+ff('Pirata One',400,'pirata-one-latin-400-normal.woff2')+ff('Alegreya Sans',400,'alegreya-sans-latin-400-normal.woff2')+ff('Alegreya Sans',500,'alegreya-sans-latin-500-normal.woff2')+ff('Alegreya Sans',700,'alegreya-sans-latin-700-normal.woff2')+'</style>\n'
 eng=open('engine.js').read()
 names=open('dicenames.js').read()
 dice=open('dice.json').read()

@@ -8,33 +8,33 @@
    Ein Ort, der nach Silber riecht: Gassenschatten als Grund, Würfel aus Knochen, Silber als Akzent, Rost für Gefahr. */
 :root {
   /* Stufe 1: Slums. Ruß, nasses Holz, angelaufenes Zinn. */
-  --bg: #0f0d0b;
-  --surface: #1d1814;
-  --surface2: #2a231b;
-  --line: #43392c;
-  --fg: #e8dfca;
-  --muted: #a99d89;
-  --silver: #bdb7a4;
+  --bg: #100f0d;
+  --surface: #201e1b;
+  --surface2: #2f2b26;
+  --line: #4d463b;
+  --fg: #f2ead8;
+  --muted: #bbaf9b;
+  --silver: #c9bea6;
   --rust: #dc7253;
   --moss: #96b072;
   --bone: #ece5d2;
   --bone-shade: #cfc6ad;
   --ink: #1c1b18;
-  --on-accent: #17130f;
+  --on-accent: #1a1610;
   --grain: .36;
   --font-display: "Pirata One", "Georgia", serif;
   --font-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
 }
-/* Stufe 2: Bürgerkleidung. Gegerbtes Leder, Bronze, weniger Schmutz. */
+/* Stufe 2: Bürgerkleidung. Leder und Silber. */
 html[data-tier="buerger"] {
-  --bg: #12100c; --surface: #221c14; --surface2: #30271c; --line: #54442f;
-  --fg: #efe6d0; --muted: #b3a68e; --silver: #cfa66a; --on-accent: #1a1209; --grain: .24;
+  --bg: #140f0a; --surface: #2b1f15; --surface2: #3b2b1c; --line: #70604d;
+  --fg: #f6eede; --muted: #c6b8a0; --silver: #d6d7d4; --on-accent: #17130e; --grain: .2;
 }
-/* Stufe 3: Adelskleidung. Tiefes Purpur, Gold, sauber. */
+/* Stufe 3: Adelskleidung. Tiefes Blau, Rot als Zierde. */
 html[data-tier="adel"] {
-  --bg: #0e0b12; --surface: #1c1622; --surface2: #2a2133; --line: #5a4a35;
-  --fg: #f4ecd8; --muted: #b9acc0; --silver: #dcb85e; --on-accent: #1a1308; --grain: .12;
+  --bg: #0a0e19; --surface: #141c30; --surface2: #1f2b49; --line: #41588c;
+  --fg: #f5f0e8; --muted: #b3c0da; --silver: #e8707a; --on-accent: #1d0709; --grain: .1;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -204,27 +204,52 @@ textarea { min-height: 84px; resize: vertical; word-break: break-all; }
 .toggle input { width: 22px; height: 22px; accent-color: var(--silver); }
 .idline { font-family: ui-monospace, Menlo, monospace; font-size: 1.15rem; letter-spacing: .06em; color: var(--silver); }
 
-/* ---------- Optik: düster, mittelalterlich, abgenutzt. Gilt nur für Farbe und Textur, nicht für Layout. ---------- */
+/* ---------- Optik: düster, mittelalterlich, abgenutzt. Farbe und Textur liegen HINTER dem Inhalt, damit Text nie verschmutzt. ---------- */
+:root { --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 -.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 html { background: var(--bg); }
-body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; transition: opacity .9s ease; }
-/* Körnung wie rauer Stoff und Papier */
-body::before { z-index: 90; opacity: var(--grain); mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 -.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-/* Ränder dunkel, dazu Flecken von Ruß, Nässe und altem Blut. Nur in den Slums ganz sichtbar. */
-body::after { z-index: 89; opacity: 1;
-  background:
-    radial-gradient(ellipse at 50% 50%, transparent 52%, #000b 112%),
-    radial-gradient(circle at 10% 14%, #4a361f40 0, transparent 24%),
-    radial-gradient(circle at 92% 62%, #1f2a1c55 0, transparent 28%),
-    radial-gradient(circle at 24% 94%, #5a1f1438 0, transparent 22%),
-    radial-gradient(circle at 78% 6%, #0000007a 0, transparent 20%); }
+body { font-weight: 500; }
+body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; transition: opacity .9s ease; }
+body::before { opacity: var(--grain); background-image: var(--noise); }
+body::after { background:
+    radial-gradient(ellipse at 50% 50%, transparent 66%, #0007 125%),
+    radial-gradient(circle at 88% 64%, #26301f60 0, transparent 30%),
+    radial-gradient(circle at 30% 96%, #5a1f1440 0, transparent 26%),
+    radial-gradient(circle at 60% 40%, #4a361f24 0, transparent 40%); }
 html[data-tier="buerger"] body::after { background:
-    radial-gradient(ellipse at 50% 50%, transparent 58%, #0009 114%),
-    radial-gradient(circle at 90% 10%, #4a361f26 0, transparent 22%),
-    radial-gradient(circle at 8% 90%, #4a361f1c 0, transparent 20%); }
+    radial-gradient(ellipse at 50% 50%, transparent 68%, #0006 125%),
+    radial-gradient(circle at 85% 70%, #70604d26 0, transparent 34%),
+    radial-gradient(circle at 20% 95%, #d6d7d414 0, transparent 30%); }
 html[data-tier="adel"] body::after { background:
-    radial-gradient(ellipse at 50% 50%, transparent 62%, #000a 116%),
-    radial-gradient(ellipse at 50% -8%, #dcb85e26 0, transparent 48%); }
+    radial-gradient(ellipse at 50% 50%, transparent 68%, #0008 125%),
+    radial-gradient(circle at 15% 88%, #a8323c30 0, transparent 34%),
+    radial-gradient(circle at 85% 20%, #3b5bb232 0, transparent 38%); }
+#app { background: transparent; position: relative; z-index: 1; }
+header.top { border-bottom: 3px double var(--line); background: none; }
+.brand { text-shadow: 0 2px 0 #000a; color: var(--fg); }
+h2, .big { text-shadow: 0 2px 0 #000a; }
+h3 { color: var(--silver); }
+.muted, .small.muted { color: var(--muted); }
+.card, .score .box { border-radius: 3px; border-color: var(--line);
+  background: linear-gradient(160deg, #ffffff08, #0000 40%, #00000028), var(--surface);
+  box-shadow: inset 0 0 0 1px #0007, inset 0 0 18px #0004, 0 2px 0 #0008; }
+.card::before { content: ""; position: absolute; inset: 0; background-image: var(--noise); opacity: calc(var(--grain) * .55); pointer-events: none; border-radius: inherit; }
+.card { position: relative; }
+.card > * { position: relative; }
+.banner { border-radius: 3px; box-shadow: inset 0 0 14px #0006; }
+.btn { border-radius: 3px; border: 1px solid var(--line);
+  background: linear-gradient(to bottom, #ffffff0d, #0000 45%, #0000003a), var(--surface2);
+  box-shadow: inset 0 1px 0 #ffffff12, inset 0 -2px 0 #0006, 0 2px 0 #000a; text-shadow: 0 1px 0 #0008; }
+.btn:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 4px #000a; }
+.btn.primary { background: linear-gradient(to bottom, #ffffff30, #0000 50%, #00000030), var(--silver); color: var(--on-accent); border-color: #0008; text-shadow: 0 1px 0 #ffffff40;
+  box-shadow: inset 0 1px 0 #ffffff55, inset 0 -2px 0 #0004, 0 2px 0 #000a; }
+.btn.danger { background: transparent; }
+nav.tabs { border-top: 3px double var(--line); background: linear-gradient(to bottom, #0000, #0004), var(--surface); }
+nav.tabs button[aria-current="page"] { border-top-color: var(--silver); }
+.sheet { border-top: 3px double var(--silver); border-radius: 4px 4px 0 0; box-shadow: 0 -8px 30px #000c, inset 0 0 40px #0004;
+  background: linear-gradient(170deg, #ffffff08, #0000 35%), var(--surface); }
+.sheet-wrap { background: #000c; }
+.say { font-family: var(--font-body); }
+.tag { border-radius: 2px; }
 html.calm body::before, html.calm body::after { transition: none; }
 #app { background: transparent; position: relative; z-index: 1; }
 header.top { border-bottom: 3px double var(--line); background: linear-gradient(to bottom, #0000, #0005); }
@@ -249,11 +274,56 @@ nav.tabs button[aria-current="page"] { border-top-color: var(--silver); text-sha
 .sheet-wrap { background: #000c; }
 .say { font-family: var(--font-body); }
 .tag { border-radius: 2px; }
-/* Würfel: in den Slums schmutzig, beim Bürger gepflegt, beim Adel blank */
-.die:not(.sel):not(.mini) { filter: sepia(.28) brightness(.93) contrast(1.02); }
-html[data-tier="buerger"] .die:not(.sel):not(.mini) { filter: sepia(.12) brightness(.97); }
-html[data-tier="adel"] .die:not(.sel):not(.mini) { filter: none; }
-@media (prefers-reduced-motion: reduce) { body::before, body::after { transition: none; } }
+/* ---------- Würfelfarben: Grundfarbe nach Kategorie, Muster nach Name ---------- */
+.die::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background-size: 100% 100%; background-repeat: no-repeat; }
+.die i { position: relative; z-index: 1; }
+.die.cat-beschaedigt { background: radial-gradient(circle at 28% 22%, #d9ccb0 0%, #b9a98a 55%, #8f8068 100%); }
+.die.cat-beschaedigt.defect { background: radial-gradient(circle at 28% 22%, #c7b99c 0%, #a8987a 60%, #85775e 100%); }
+.die.cat-gezinkt { background: linear-gradient(135deg, #f7fafc 0%, #b4bdc8 28%, #eef2f5 48%, #8d97a4 74%, #d2d9e0 100%);
+  box-shadow: inset 0 2px 1px #fffd, inset 0 -7px 9px #4a566840, inset 0 0 0 1.5px #3a455a50, 0 4px 0 #0007, 0 10px 12px #0006; }
+.die.cat-golden { background: linear-gradient(135deg, #fff6b8 0%, #f4c534 30%, #fff1a0 48%, #cc9214 78%, #f7d968 100%);
+  box-shadow: inset 0 2px 1px #fffd, inset 0 -7px 9px #8a5a0850, inset 0 0 0 1.5px #8a5a0866, 0 0 18px #f4c53466, 0 4px 0 #0007, 0 10px 12px #0006; }
+.die.cat-okkult { background: radial-gradient(circle at 30% 24%, #5b3592 0%, #2a1650 52%, #0d0720 100%);
+  box-shadow: inset 0 2px 1px #c9a2ff40, inset 0 -7px 9px #000a, inset 0 0 0 1.5px #b58cff55, 0 0 18px #7a3fd066, 0 4px 0 #0007, 0 10px 12px #0006; }
+.die.cat-okkult i { background: radial-gradient(circle at 34% 30%, #ffffff 0, #d9b8ff 66%); box-shadow: 0 0 6px #c9a2ffaa, inset 0 1px 2px #fff; }
+.die.cat-okkult.one i.on { background: radial-gradient(circle at 34% 30%, #ff9a85 0, #d03c25 70%); box-shadow: 0 0 6px #ff7a5aaa, inset 0 1px 2px #fff8; }
+.die.cat-okkult .x::before { color: #ff7a5a; text-shadow: none; }
+.die.cat-signatur { background: radial-gradient(circle at 30% 24%, #2f7a84 0%, #164a52 52%, #0a2a30 100%);
+  box-shadow: inset 0 2px 1px #ffffff40, inset 0 -7px 9px #000a, inset 0 0 0 2.5px #e2b64a, 0 0 14px #e2b64a55, 0 4px 0 #0007, 0 10px 12px #0006; }
+.die.cat-signatur i { background: radial-gradient(circle at 34% 30%, #fffbe8 0, #f3d27a 66%); box-shadow: inset 0 1px 2px #fff; }
+.die.cat-signatur.one i.on { background: radial-gradient(circle at 34% 30%, #ff9a85 0, #d03c25 70%); }
+.die.cat-signatur .x::before { color: #ff9a85; text-shadow: none; }
+.die.sel[class*="cat-"] { background: radial-gradient(circle at 28% 22%, #f6fcec 0%, #d3e9b4 55%, #a9cd84 100%); box-shadow: inset 0 2px 1px #fffc, inset 0 -7px 9px #5d8a4540, 0 0 0 4px var(--moss), 0 0 24px #8fb276aa, 0 12px 12px #0006; }
+.die.sel::before { opacity: .35; }
+.die.cat-okkult.sel i, .die.cat-signatur.sel i { background: radial-gradient(circle at 34% 30%, #55534c 0, #15140f 62%); box-shadow: inset 0 2px 3px #000c, 0 1px 0 #fffb; }
+.die.cat-golden:not(.sel):not(.mini)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(115deg, transparent 38%, #fffbe0aa 50%, transparent 62%); background-size: 260% 100%; background-position: 130% 0; animation: glint 4.5s ease-in-out infinite; }
+@keyframes glint { 0%, 55% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
+html.calm .die.cat-golden::after { animation: none; }
+.dchip { display: inline-block; width: 1.05em; height: 1.05em; border-radius: 22%; vertical-align: -.15em; margin-right: 6px; position: relative; box-shadow: inset 0 0 0 1px #0006, 0 1px 0 #0008; }
+.dchip::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background-size: 100% 100%; }
+.pat-cracks::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M18 0 L26 22 L14 38 L30 56 L22 78 L34 100 M26 22 L48 30 M30 56 L52 60 M70 0 L62 18 L74 34' stroke='%232a1d10' stroke-opacity='.55' stroke-width='1.6' fill='none' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.pat-stains::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%234a3412' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%234a3412' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='26' cy='30' r='24' fill='url(%23g)'/%3E%3Ccircle cx='72' cy='66' r='28' fill='url(%23g)'/%3E%3Ccircle cx='62' cy='16' r='14' fill='url(%23g)'/%3E%3C/svg%3E"); }
+.pat-mold::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='22' cy='72' r='7' fill='%234d6a3a' fill-opacity='.55'/%3E%3Ccircle cx='32' cy='80' r='5' fill='%233a5a35' fill-opacity='.5'/%3E%3Ccircle cx='70' cy='24' r='8' fill='%2356703c' fill-opacity='.5'/%3E%3Ccircle cx='80' cy='34' r='4' fill='%233a5a35' fill-opacity='.5'/%3E%3Ccircle cx='52' cy='52' r='3' fill='%234d6a3a' fill-opacity='.45'/%3E%3C/svg%3E"); }
+.pat-rust::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='20' cy='20' r='9' fill='%23a5521e' fill-opacity='.5'/%3E%3Ccircle cx='30' cy='28' r='5' fill='%237a3a14' fill-opacity='.5'/%3E%3Ccircle cx='76' cy='74' r='12' fill='%23a5521e' fill-opacity='.42'/%3E%3Ccircle cx='64' cy='82' r='5' fill='%237a3a14' fill-opacity='.5'/%3E%3C/svg%3E"); }
+.pat-soot::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='g' cx='0' cy='0' r='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)' transform='scale(1.1)'/%3E%3C/svg%3E"); }
+.pat-holes::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='24' cy='26' r='3.2' fill='%231c130a' fill-opacity='.75'/%3E%3Ccircle cx='62' cy='20' r='2.4' fill='%231c130a' fill-opacity='.75'/%3E%3Ccircle cx='74' cy='62' r='3.4' fill='%231c130a' fill-opacity='.75'/%3E%3Ccircle cx='34' cy='76' r='2.6' fill='%231c130a' fill-opacity='.75'/%3E%3Ccircle cx='50' cy='48' r='1.8' fill='%231c130a' fill-opacity='.7'/%3E%3C/svg%3E"); }
+.pat-scratch::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M4 20 L60 8 M10 44 L92 26 M20 70 L96 52 M2 92 L70 80 M44 96 L98 84' stroke='%232a1d10' stroke-opacity='.4' stroke-width='1' fill='none'/%3E%3C/svg%3E"); }
+.pat-chips::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M0 0 L22 0 L0 20 Z M100 100 L78 100 L100 80 Z M100 0 L88 0 L100 12 Z' fill='%233a2d1a' fill-opacity='.55'/%3E%3C/svg%3E"); }
+.pat-faded::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23d9cba0' fill-opacity='.28'/%3E%3Ccircle cx='30' cy='70' r='36' fill='%23fff' fill-opacity='.12'/%3E%3C/svg%3E"); }
+.pat-facet::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M0 0 L100 100 M100 0 L0 100 M50 0 L50 100 M0 50 L100 50' stroke='%23fff' stroke-opacity='.28' stroke-width='1' fill='none'/%3E%3C/svg%3E"); }
+.pat-sheen::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M-10 70 L70 -10 L100 20 L20 100 Z' fill='%23fff' fill-opacity='.3'/%3E%3C/svg%3E"); }
+.pat-rim::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='6' y='6' width='88' height='88' rx='14' fill='none' stroke='%232b3038' stroke-opacity='.55' stroke-width='3'/%3E%3C/svg%3E"); }
+.pat-rivets::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='10' cy='10' r='3' fill='%232b3038' fill-opacity='.6'/%3E%3Ccircle cx='90' cy='10' r='3' fill='%232b3038' fill-opacity='.6'/%3E%3Ccircle cx='10' cy='90' r='3' fill='%232b3038' fill-opacity='.6'/%3E%3Ccircle cx='90' cy='90' r='3' fill='%232b3038' fill-opacity='.6'/%3E%3C/svg%3E"); }
+.pat-rays::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 50 L50 -20 M50 50 L120 50 M50 50 L50 120 M50 50 L-20 50 M50 50 L100 0 M50 50 L100 100 M50 50 L0 100 M50 50 L0 0' stroke='%23fff6c4' stroke-opacity='.5' stroke-width='2' fill='none'/%3E%3C/svg%3E"); }
+.pat-filigree::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='7' y='7' width='86' height='86' rx='13' fill='none' stroke='%238a5a08' stroke-opacity='.6' stroke-width='2'/%3E%3Crect x='12' y='12' width='76' height='76' rx='10' fill='none' stroke='%23fff3b0' stroke-opacity='.5' stroke-width='1'/%3E%3C/svg%3E"); }
+.pat-sparkle::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M24 14 L26 22 L34 24 L26 26 L24 34 L22 26 L14 24 L22 22 Z M76 62 L78 70 L86 72 L78 74 L76 82 L74 74 L66 72 L74 70 Z' fill='%23fff' fill-opacity='.85'/%3E%3C/svg%3E"); }
+.pat-runes::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%23c9a2ff' stroke-opacity='.55' stroke-width='2' fill='none' stroke-linecap='round'%3E%3Cpath d='M12 12 L12 28 M12 18 L20 12 M12 18 L20 26'/%3E%3Cpath d='M80 10 L88 24 L80 38'/%3E%3Cpath d='M12 76 L22 90 M12 90 L22 76'/%3E%3Cpath d='M82 80 L82 92 M76 86 L88 86'/%3E%3C/g%3E%3C/svg%3E"); }
+.pat-swirl::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 50 m0 0 a6 6 0 1 1 6 6 a12 12 0 1 1 -12 -12 a20 20 0 1 1 20 20 a30 30 0 1 1 -30 -30' stroke='%23b58cff' stroke-opacity='.2' stroke-width='2' fill='none'/%3E%3C/svg%3E"); }
+.pat-stars::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23e5ccff' fill-opacity='.8'%3E%3Ccircle cx='18' cy='22' r='1.8'/%3E%3Ccircle cx='80' cy='16' r='1.4'/%3E%3Ccircle cx='68' cy='70' r='2'/%3E%3Ccircle cx='26' cy='84' r='1.5'/%3E%3Ccircle cx='48' cy='40' r='1.2'/%3E%3Ccircle cx='88' cy='48' r='1.6'/%3E%3C/g%3E%3C/svg%3E"); }
+.pat-ring::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='7' y='7' width='86' height='86' rx='14' fill='none' stroke='%237a6a48' stroke-opacity='.3' stroke-width='2'/%3E%3C/svg%3E"); }
+.pat-grainy::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M0 30 Q25 24 50 30 T100 30 M0 62 Q25 56 50 62 T100 62' stroke='%237a6a48' stroke-opacity='.18' stroke-width='2' fill='none'/%3E%3C/svg%3E"); }
+.die.cat-okkult.pat-runes::before, .die.cat-okkult.pat-swirl::before, .die.cat-okkult.pat-stars::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .die.cat-golden::after { animation: none; } body::before, body::after { transition: none; } }
 </style>
 
 <div id="app">
@@ -1085,8 +1155,27 @@ function miniDie(v, cls) { // Beispielwürfel für die Regeln; v = 1..6 oder "an
   if (v === "any") return `<span class="die mini any off" aria-hidden="true"><span class="x"></span></span>`;
   return `<span class="die mini off ${v === 1 ? "one" : ""} ${cls || ""}" aria-hidden="true">${pipHtml(v)}</span>`;
 }
+// Würfel-Aussehen: Grundfarbe nach Kategorie, Muster aus dem Namen (stichwortbasiert, sonst per Hash)
+const PAT_RULES = {
+  beschaedigt: [[/rissig|brüchig|schartig/, "cracks"], [/fleckig|schmierig|fettig|klebrig|verklebt|speckig/, "stains"], [/schimmel|muffig|modrig|moder|ranzig/, "mold"],
+    [/rost/, "rust"], [/verrußt|angekokelt|trüb|stinkend/, "soot"], [/wurmstichig|angebissen/, "holes"], [/verkratzt|abgenutzt|stumpf|klappernd/, "scratch"],
+    [/abgesplittert|angeschlagen|verbeult/, "chips"], [/vergilbt|ausgeblichen/, "faded"]],
+  gezinkt: [[/schwer|beschwert/, "rivets"], [/glatt|ruhig|kühl/, "sheen"], [/geschliffen|augenzwinkernd/, "facet"], [/gearbeitet|unscheinbar|schief/, "rim"]],
+  golden: [[/strahlend|sonnenhell|leuchtend/, "rays"], [/funkelnd|schimmernd|glänzend/, "sparkle"], [/prachtvoll|makellos/, "filigree"]],
+  okkult: [[/flüsternd|raunend|schmeichelnd/, "swirl"], [/aufleuchtend|pochend|sehnsüchtig/, "stars"], [/einschüchternd|herrisch|drängend|verlockend/, "runes"]],
+};
+const PAT_FALLBACK = { standard: ["none", "ring", "grainy", "none"], beschaedigt: ["scratch", "stains", "chips", "soot"], gezinkt: ["rim", "sheen", "facet", "rivets"], golden: ["rays", "sparkle", "filigree"], okkult: ["swirl", "stars", "runes"], signatur: ["filigree"] };
+function strHash(t) { let h = 7; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return h; }
+function dieLook(id) {
+  const d = byId[id], cat = d.category; let pat = null;
+  const nm = (d.fixedName ? d.fixedName : dname(id)).toLowerCase();
+  for (const [re, p] of (PAT_RULES[cat] || [])) if (re.test(nm)) { pat = p; break; }
+  if (!pat) { const f = PAT_FALLBACK[cat] || ["none"]; pat = f[strHash(nm) % f.length]; }
+  return `cat-${cat}${pat === "none" ? "" : " pat-" + pat}`;
+}
+const dieChip = id => `<span class="dchip die ${dieLook(id)}" aria-hidden="true" style="width:1.25em;height:1.25em;padding:0;display:inline-block;max-width:none;box-shadow:inset 0 0 0 1px #0006,0 1px 0 #0008;aspect-ratio:auto;transition:none"></span>`;
 function dieHtml(d, idx, interactive, mini) {
-  const cls = ["die"]; if (d.selected) cls.push("sel"); if (d.locked || mini) cls.push("mini"); if (!interactive) cls.push("off"); if (d.rolled) cls.push("roll");
+  const cls = ["die", dieLook(d.id)]; if (d.selected) cls.push("sel"); if (d.locked || mini) cls.push("mini"); if (!interactive) cls.push("off"); if (d.rolled) cls.push("roll");
   if (d.value === 1) cls.push("one"); if (d.value === 0) cls.push("defect");
   const face = d.value === 0 ? `<span class="x" aria-hidden="true"></span>` : pipHtml(d.value);
   const label = `${cname(d.id)}: ${d.value === 0 ? "defekte Seite" : d.value}${d.locked ? ", behalten" : d.selected ? ", gewählt" : ""}`;
@@ -1226,7 +1315,7 @@ function statBlock(id) {
 }
 function infoCard(id) {
   const c = P.comp[id], nm = cname(id), order = [1, 2, 3, 4, 5, 6, 0], cols = "grid-template-columns:repeat(7,1fr)";
-  const head = `<div class="row"><div class="grow"><b>${esc(nm)}</b>${c && c.cn ? `<div class="small muted">${esc(dname(id))}</div>` : ""}</div>${c && c.prio ? `<span class="stars">${"★".repeat(c.prio)}${"☆".repeat(3 - c.prio)}</span>` : ""}${c && c.fav ? `<span aria-label="Favorit">♥</span>` : ""}</div>`;
+  const head = `<div class="row"><div class="grow">${dieChip(id)}<b>${esc(nm)}</b>${c && c.cn ? `<div class="small muted">${esc(dname(id))}</div>` : ""}</div>${c && c.prio ? `<span class="stars">${"★".repeat(c.prio)}${"☆".repeat(3 - c.prio)}</span>` : ""}${c && c.fav ? `<span aria-label="Favorit">♥</span>` : ""}</div>`;
   if (!c || !c.n) return `<div class="card stack" style="gap:6px">${head}<div class="small muted">Noch keine Würfe mit diesem Würfel gemessen.</div></div>`;
   const mx = Math.max(...c.c, 1), lv = levelOf(c);
   return `<div class="card stack" style="gap:6px">${head}<div class="row"><span class="muted small">${c.n} Würfe</span><span class="small grow" style="text-align:right">Sicherheit: ${LEVEL_NAMES[lv]} ${dots(lv)}</span></div>
@@ -1247,7 +1336,7 @@ function viewBag() {
   const act = new Set(G.active); const showStats = !!(P.settings && P.settings.stats);
   const rows = G.inv.map(x => {
     const d = byId[x.id], on = act.has(x.uid);
-    return `<div class="card stack" style="gap:6px"><div class="row"><div class="grow"><b>${esc(cname(x.id))}</b><span class="stars">${esc(cmarks(x.id))}</span>${comp(x.id).cn ? `<div class="small muted">${esc(dname(x.id))}</div>` : ""}${comp(x.id).group ? `<span class="tag">${esc(comp(x.id).group)}</span>` : ""}${dbg ? `<span class="tag ${d.category === "okkult" || d.category === "golden" ? "rare" : ""}">${d.category}</span>` : ""}</div>
+    return `<div class="card stack" style="gap:6px"><div class="row"><div class="grow">${dieChip(x.id)}<b>${esc(cname(x.id))}</b><span class="stars">${esc(cmarks(x.id))}</span>${comp(x.id).cn ? `<div class="small muted">${esc(dname(x.id))}</div>` : ""}${comp(x.id).group ? `<span class="tag">${esc(comp(x.id).group)}</span>` : ""}${dbg ? `<span class="tag ${d.category === "okkult" || d.category === "golden" ? "rare" : ""}">${d.category}</span>` : ""}</div>
       <button class="btn small ${on ? "primary" : ""}" data-active="${x.uid}" aria-pressed="${on}">${on ? "Aktiv" : "Tasche"}</button>
       ${LOCS[G.loc].dealer ? `<button class="btn small danger" data-sell="${x.uid}">Verkaufen ${Math.floor(d.baseValue / 2)}</button>` : ""}</div>
       ${showStats ? statBlock(x.id) : ""}${dbg ? bars(d) : ""}</div>`;
