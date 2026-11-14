@@ -11,7 +11,7 @@ Spielen: https://b0endal.github.io/slums-farkle/ (iPhone: Safari, Teilen, Zum Ho
 - `fonts/`: eingebettete Schriften (Pirata One, Alegreya Sans, SIL OFL), werden von `build.py` in index.html eingebettet
 - `build.py`: setzt `index.html` aus den Quellen zusammen (`python3 build.py`)
 - `tools/sim/`: Balancing-Simulationen (`node tools/sim/sim5.js`)
-- `docs/`: Checkliste, Übergabe für neue Chats, Verlaufsprotokoll, Balancing-Ergebnisse, alte Würfel-Tabelle (zwei Blätter veraltet)
+- `docs/`: offene Fehler (OFFENE_FEHLER.md), Checkliste, Übergabe für neue Chats, Verlaufsprotokoll, Balancing-Ergebnisse, alte Würfel-Tabelle (zwei Blätter veraltet)
 
 ## Release
 1. `node engine.test.js`
