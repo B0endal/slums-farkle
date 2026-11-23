@@ -411,40 +411,41 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
   };
 
   // Grundwert einer Würfelgruppe als eine Kombination, oder 0 wenn sie keine ist
-  function comboBase(vals) {
+  function comboBase(vals, R) {
+    R = R || RULES;
     const n = vals.length;
     if (vals.some(v => v === 0)) return { base: 0 };
-    if (n === 1) { const b = RULES.single[vals[0]]; return b ? { base: b, type: "single" } : { base: 0 }; }
+    if (n === 1) { const b = R.single[vals[0]]; return b ? { base: b, type: "single" } : { base: 0 }; }
     const cnt = {}; vals.forEach(v => (cnt[v] = (cnt[v] || 0) + 1));
     const keys = Object.keys(cnt).map(Number), counts = keys.map(k => cnt[k]).sort((a, b) => b - a);
     if (keys.length === 1) {
-      if (n === 3) return { base: RULES.triple[keys[0]], type: "triple" };
-      const ones = keys[0] === 1 ? 1000 : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
-      if (n === 4) return { base: RULES.four + ones, type: "four" };
-      if (n === 5) return { base: RULES.five + ones, type: "five" };
-      if (n === 6) return { base: RULES.six + ones, type: "six" };
+      if (n === 3) return { base: R.triple[keys[0]], type: "triple" };
+      const ones = keys[0] === 1 ? 1000 : 0, z = x => x ? x + ones : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
+      if (n === 4) return { base: z(R.four), type: "four" };
+      if (n === 5) return { base: z(R.five), type: "five" };
+      if (n === 6) return { base: z(R.six), type: "six" };
       return { base: 0 };
     }
     const sorted = vals.slice().sort((a, b) => a - b).join("");
-    if (n === 5 && (sorted === "12345" || sorted === "23456")) return { base: RULES.partialStraight, type: "partialStraight" };
+    if (n === 5 && (sorted === "12345" || sorted === "23456")) return { base: R.partialStraight, type: "partialStraight" };
     if (n === 6) {
-      if (sorted === "123456") return { base: RULES.straight, type: "straight" };
-      if (counts.join() === "2,2,2") return { base: RULES.threePair, type: "threePair" };
-      if (counts.join() === "3,3") return { base: RULES.doubleTriple, type: "doubleTriple" };
-      if (counts.join() === "4,2") return { base: RULES.fourPlusPair, type: "fourPlusPair" };
+      if (sorted === "123456") return { base: R.straight, type: "straight" };
+      if (counts.join() === "2,2,2") return { base: R.threePair, type: "threePair" };
+      if (counts.join() === "3,3") return { base: R.doubleTriple, type: "doubleTriple" };
+      if (counts.join() === "4,2") return { base: R.fourPlusPair, type: "fourPlusPair" };
     }
     return { base: 0 };
   }
 
   // Beste Aufteilung der Auswahl in Kombinationen. Jeder gewählte Würfel muss zählen.
   // Liefert { score, combos } oder null.
-  function scoreSelection(sel, factor) {
+  function scoreSelection(sel, factor, R) {
     const n = sel.length;
     if (!n || n > 6) return null;
     const full = (1 << n) - 1, info = new Array(full + 1);
     for (let m = 1; m <= full; m++) {
       const idx = []; for (let i = 0; i < n; i++) if (m & (1 << i)) idx.push(i);
-      const c = comboBase(idx.map(i => sel[i].value));
+      const c = comboBase(idx.map(i => sel[i].value), R);
       if (c.base) { const mult = idx.reduce((a, i) => a * dieEffect(sel[i], factor), 1); info[m] = { type: c.type, base: c.base, mult, pts: Math.round(c.base * mult) }; }
     }
     const best = new Array(full + 1).fill(null); best[0] = { score: 0, combos: [] };
@@ -461,22 +462,22 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
   }
 
   // Gibt es im Wurf irgendeine wertbare Auswahl? (sonst Farkle)
-  function hasScoring(dice) {
+  function hasScoring(dice, R) {
     const n = dice.length;
     for (let m = 1; m < 1 << n; m++) {
       const sel = []; for (let i = 0; i < n; i++) if (m & (1 << i)) sel.push(dice[i]);
-      if (scoreSelection(sel, 0)) return true;
+      if (scoreSelection(sel, 0, R)) return true;
     }
     return false;
   }
 
   // Alle gültigen Teilmengen (Indizes) eines Wurfs mit ihrem Wert
-  function validSelections(dice, factor) {
+  function validSelections(dice, factor, R) {
     const out = [], n = dice.length;
     for (let mask = 1; mask < 1 << n; mask++) {
       const idx = [];
       for (let i = 0; i < n; i++) if (mask & (1 << i)) idx.push(i);
-      const r = scoreSelection(idx.map(i => dice[i]), factor);
+      const r = scoreSelection(idx.map(i => dice[i]), factor, R);
       if (r) out.push({ idx, score: r.score });
     }
     return out;
@@ -511,9 +512,9 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
   const REMAIN_BONUS = { 0: 350, 1: -150, 2: -50, 3: 0, 4: 60, 5: 120, 6: 150 };
 
   // Wahl der Würfel: Punkte plus Bonus für übrig bleibende Würfel
-  function aiChoose(dice, factor) {
+  function aiChoose(dice, factor, R) {
     const free = dice.map((d, i) => ({ d, i })).filter(x => !x.d.locked);
-    const sels = validSelections(free.map(x => x.d), factor);
+    const sels = validSelections(free.map(x => x.d), factor, R);
     if (!sels.length) return null;
     let best = null;
     for (const s of sels) {
@@ -528,7 +529,7 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
       const left = free.length - chosen.size - 1;
       if (x.d.value === 1 || (x.d.value === 5 && (left >= 3 || left === 0))) {
         const trial = [...chosen, x.i];
-        const r = scoreSelection(trial.map(i => dice[i]), factor);
+        const r = scoreSelection(trial.map(i => dice[i]), factor, R);
         if (r && r.score > best.score) { chosen.add(x.i); best = { v: r.score, idx: trial, score: r.score, rem: left }; }
       }
     }
@@ -546,23 +547,32 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
 
   // Ein kompletter KI-Zug ohne UI. Gibt { banked, score, log } zurück.
   function aiPlayTurn(opts) {
-    const { dice: bag, dbById, factor, profile, myScore, target, rng } = opts;
+    const { dice: bag, dbById, factor, profile, myScore, target, rng, rules, cap } = opts;
     let table = bag.map(d => ({ id: d.id, occult: d.category === "okkult", totalMult: 1, locked: false }));
     let turn = 0, log = [];
     for (let guard = 0; guard < 60; guard++) {
       table = rollUnlocked(table, dbById, rng);
       const free = table.filter(d => !d.locked);
-      if (!hasScoring(free)) { log.push("farkle"); return { banked: false, score: 0, log }; }
-      const pick = aiChoose(table, factor);
+      if (!hasScoring(free, rules)) { log.push("farkle"); return { banked: false, score: 0, log }; }
+      const pick = aiChoose(table, factor, rules);
       pick.idx.forEach(i => (table[i] = Object.assign({}, table[i], { selected: true })));
       turn += pick.score;
       const k = keepSelected(table);
       table = k.dice;
       const remaining = k.hot ? 0 : table.filter(d => !d.locked).length;
       log.push({ kept: pick.score, remaining });
+      if (cap && turn >= cap) return { banked: true, score: cap, log };
       if (aiShouldBank(profile, turn, remaining, myScore, target)) return { banked: true, score: turn, log };
     }
-    return { banked: true, score: turn, log };
+    return { banked: true, score: cap ? Math.min(turn, cap) : turn, log };
+  }
+
+  // Regelsatz mit Überschreibungen zusammensetzen (flach, Einzelwerte und Drillinge getrennt)
+  function mergeRules(base, over) {
+    const r = Object.assign({}, base, { single: Object.assign({}, base.single), triple: Object.assign({}, base.triple) });
+    if (!over) return r;
+    Object.keys(over).forEach(k => { if (k === "single" || k === "triple") Object.assign(r[k], over[k]); else r[k] = over[k]; });
+    return r;
   }
 
   // Ganzes Duell zwischen zwei Beuteln (für Tests und Simulator). Beide spielen KI-Profile.
@@ -573,7 +583,7 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
     let who = first, turns = 0;
     while (turns++ < (maxTurns || 400)) {
       const s = sides[who];
-      const r = aiPlayTurn({ dice: s.dice, dbById: s.dbById, factor: occultFactor(s.dice), profile: s.profile, myScore: sc[who], target, rng });
+      const r = aiPlayTurn({ dice: s.dice, dbById: s.dbById, factor: occultFactor(s.dice), profile: s.profile, myScore: sc[who], target, rng, rules: s.rules, cap: s.cap });
       if (r.banked) sc[who] += r.score;
       if (sc[who] >= target) return { winner: who, turns, scores: sc };
       who = who === "a" ? "b" : "a";
@@ -591,7 +601,7 @@ nav.tabs button { font-size: .72rem; letter-spacing: 0; padding-left: 1px; paddi
     };
   }
 
-  const api = { RULES, OCCULT_FACTOR_MAX, CONFIDENCE_NAMES, samplesNeeded, confidenceLevel, sideProbabilities, rollSideIndex, occultFactor, setOccultMax, scoreSelection, hasScoring, validSelections,
+  const api = { RULES, OCCULT_FACTOR_MAX, CONFIDENCE_NAMES, samplesNeeded, confidenceLevel, sideProbabilities, rollSideIndex, occultFactor, setOccultMax, scoreSelection, hasScoring, validSelections, mergeRules,
     rollUnlocked, keepSelected, AI_PROFILES, aiChoose, aiShouldBank, aiPlayTurn, simulateDuel, mulberry32 };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.FarkleEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
@@ -684,7 +694,8 @@ const STORE = "farkle-proto-v1";
 // ---------- Orte und NPCs (Spezifikation v3, Abschnitte 4, 8, 13) ----------
 const LOCS = {
   handel:    { name: "Handelsstraße",       target: 2000, profile: "ausgewogen",    nb: ["slums", "gasse", "gerber", "dorf", "stadttor"] },
-  slums:     { name: "Slums",               target: 1500, profile: "vorsichtig",    nb: ["handel", "wohn", "gerber", "kanal"] },
+  slums:     { name: "Slums",               target: 1500, profile: "vorsichtig",    nb: ["handel", "wohn", "gerber", "kanal", "versteck"] },
+  versteck:  { name: "Versteck",            target: 0,    profile: "vorsichtig",    nb: ["slums"], hidden: true, safe: true },
   wohn:      { name: "Wohnviertel",         target: 2000, profile: "vorsichtig",    nb: ["slums", "gasse", "kneipe"] },
   gasse:     { name: "Gasse",               target: 2000, profile: "ausgewogen",    nb: ["handel", "wohn", "hafen"], dealer: true },
   kneipe:    { name: "Kneipe",              target: 2500, profile: "risikofreudig", nb: ["wohn", "hafen"] },
@@ -891,12 +902,16 @@ function newRun() {
     if ((counts[id] || 0) < byId[id].maxInventory) { counts[id] = (counts[id] || 0) + 1; inv.push({ uid: uidSeq++, id }); }
   }
   inv.push({ uid: uidSeq++, id: "std" }, { uid: uidSeq++, id: "std" });
+  perm();
+  for (let i = 0; i < P.start.gezinkt && i < inv.length; i++) inv[i].id = ["t15_1", "t456_1", "t23_1"][i];
+  for (let i = 0; i < P.start.reserve; i++) inv.push({ uid: uidSeq++, id: "std" });
+  P.haus.truhe.slice().reverse().forEach(id => { if (byId[id]) inv.unshift({ uid: uidSeq++, id }); });
   const npcs = {}, R = { golden: 0, okkult: 0, used: [] };
   const order = Object.values(NPCS).slice().sort(() => rng() - 0.5);   // faire Verteilung der seltenen Würfel
   order.filter(n => !n.tunnel && !n.story).forEach(n => { npcs[n.id] = { budget: n.startBudget, pool: makePool(n.group, R, n.dice), stolen: null, respawn: 0, lostSlot: null }; });
   initTunnel(npcs, R); initStory(npcs, R);
   inv.forEach(x => markSeen(x.id));
-  G = { v: 2, day: 1, time: 0, silver: startSilver(), loc: "handel", prev: null, pressure: { handel: 5 }, inv, active: inv.map(x => x.uid), npcs, duel: null, lastResult: null,
+  G = { v: 2, day: 1, time: 0, silver: startSilverTotal(), loc: "handel", prev: null, pressure: { handel: 5 }, inv, active: inv.slice(0, 6).map(x => x.uid), diff: Math.min((P.settings && P.settings.diffNext) || 0, maxDiff()), rs: Math.floor(Math.random() * 1e9), npcs, duel: null, lastResult: null,
     items: { buerger: false, adel: false }, quest: { wachwechsel: 0, tunnel: 0 }, shop: null, rare: R, spy: pick(SPY_CANDIDATES), st: {}, flags: {}, disc: 0, roam: {}, shop2: null, vis: {} };
   view = "map";
   save();
@@ -917,8 +932,8 @@ function respawn(id) {
 }
 // Tor- und Schlüsselsperren auf einzelnen Verbindungen (Abschnitt 4 und 13.3)
 const hasQ = k => !!P.qitems[k];
-const pmax = () => (G.flags && G.flags.wache === "erpressen") ? 13 : 10;
-const priceOf = id => Math.max(1, Math.round(byId[id].baseValue * (100 - ((G && G.disc) || 0)) / 100));
+const pmax = () => ((G.flags && G.flags.wache === "erpressen") ? 13 : 10) + repLevel("wache");
+const priceOf = id => Math.max(1, Math.round(byId[id].baseValue * Math.max(25, 100 - ((G && G.disc) || 0) - discountPct()) / 100));
 const tickNow = () => G.day * 4 + G.time;
 // Tor: Tagsüber öffnet das Wohlwollen der Tagwache (Verrat an der Nachtwache), abends und nachts das der Nachtwache (Lüge gegenüber der Tagwache)
 function passOk(day) { return day ? (hasQ("wohlwollen_tagwache") || G.quest.wachwechsel === 3) : (hasQ("wohlwollen_nachtwache") || G.quest.wachwechsel === 2); }
@@ -935,13 +950,13 @@ function blockReason(a, b) {
   if (is("generalsaal", "aue") && !cleared("generalsaal")) return "Ausgang versperrt";
   return null;
 }
-function arrivalPressure(dest) { return dest === G.prev ? pr(dest) + 3 : Math.max(0, pr(G.loc) - 5); }
+function arrivalPressure(dest) { return dest === G.prev ? pr(dest) + 3 : Math.max(0, pr(G.loc) - 5 - (hasT("schleicher") ? 1 : 0)); }
 function travel(dest) {
   if (G.duel || blockReason(G.loc, dest)) return;
   G.roam = {};
   if (dest === G.prev) { G.pressure[dest] = pr(dest) + 3; }
-  else { const np = Math.max(0, pr(G.loc) - 5); if (G.prev) G.pressure[G.prev] = 0; G.pressure[dest] = np; }
-  if (LOCS[dest].tunnel) G.pressure[dest] = 0;
+  else { const np = Math.max(0, pr(G.loc) - 5 - (hasT("schleicher") ? 1 : 0)); if (G.prev) G.pressure[G.prev] = 0; G.pressure[dest] = np; }
+  if (LOCS[dest].tunnel || LOCS[dest].safe) G.pressure[dest] = 0;
   else if (G.st.salz && G.st.salz.carry) G.pressure[dest] = pr(dest) + 1;
   const from = G.loc;
   G.prev = G.loc; G.loc = dest; G.vis = G.vis || {}; G.vis[from] = true; G.vis[dest] = true;
@@ -964,8 +979,9 @@ function isFinal(id) { const n = NPCS[id], s = G.npcs[id]; return !s.respawn && 
 function busted(why) {
   const day = G.day; FX.play("bust");
   G.duel = null;
+  const ru = addRuhm(runEndRuhm());
   newRun();
-  openSheet(`<h2 class="rust">Gefasst</h2><p>${why} Dein Run endet nach ${day} Tag${day === 1 ? "" : "en"}. Das Kompendium und deine Würfelnamen bleiben. Du beginnst von vorn: ${startSilver()} Silber, vier beschädigte und zwei Standardwürfel.</p><button class="btn primary full" data-act="close">Neuer Run</button>`);
+  openSheet(`<h2 class="rust">Gefasst</h2><p>${why} Dein Run endet nach ${day} Tag${day === 1 ? "" : "en"}. Das Kompendium und deine Würfelnamen bleiben. Du erhältst ${ru} Ruhm. Du beginnst von vorn: ${startSilverTotal()} Silber, vier beschädigte und zwei Standardwürfel.</p><button class="btn primary full" data-act="close">Neuer Run</button>`);
 }
 
 // ---------- Duell ----------
@@ -975,19 +991,22 @@ function freshTable(ids, ownerIsPlayer) {
 function log(t) { G.duel.log.unshift(t); G.duel.log = G.duel.log.slice(0, 8); }
 function playerRoll() {
   const D = G.duel;
-  if (!D.table.length || D.table.every(d => d.locked)) D.table = freshTable(activeDice().map(x => x.id), true);
+  if (!D.table.length || D.table.every(d => d.locked)) D.table = freshTable(duelIds(D), true);
   if (!D.table.length) { D.phase = "noDice"; render(); return; }
   D.table = E.rollUnlocked(D.table, byId, rng).map(d => (d.locked ? Object.assign({}, d, { rolled: false }) : Object.assign({}, d, { rolled: true })));
   D.table.forEach(d => { if (d.rolled) { const c = comp(d.id); c.seen = true; c.n++; c.c[d.value]++; } });
   const free = D.table.filter(d => !d.locked);
   FX.play("roll");
-  if (!E.hasScoring(free)) { log("Farkle. Der Zug zählt nichts."); D.phase = "farkle"; D.pFarkles = (D.pFarkles || 0) + 1; D.turn = 0; setTimeout(() => { FX.play("farkle"); FX.shake(document.getElementById("main")); FX.float("Farkle", "bad"); }, 380); }
+  if (!E.hasScoring(free, rulesP()) && hasT("atem") && !D.atem) { D.atem = true; log("Zweiter Atem: Der Wurf wird wiederholt."); FX.float("Zweiter Atem", "good"); return playerRoll(); }
+  if (!E.hasScoring(free, rulesP())) { log("Farkle. Der Zug zählt nichts."); D.phase = "farkle"; D.pFarkles = (D.pFarkles || 0) + 1;
+    if (hasT("trost") && D.turn >= 200) { const g = Math.floor(D.turn * .25 / 50) * 50; D.pScore += g; log(`Trostpreis: ${g} Punkte bleiben dir.`); }
+    D.turn = 0; setTimeout(() => { FX.play("farkle"); FX.shake(document.getElementById("main")); FX.float("Farkle", "bad"); }, 380); }
   else D.phase = "choose";
   save(); render();
 }
 function selInfo() {
   const D = G.duel; const sel = D.table.filter(d => d.selected);
-  const r = E.scoreSelection(sel, D.factor);
+  const r = E.scoreSelection(sel, D.factor, rulesP());
   return r ? r.score : null;
 }
 function toggle(i) {
@@ -998,6 +1017,8 @@ function toggle(i) {
 function keepAndRoll() {
   const D = G.duel, s = selInfo(); if (s === null) return;
   D.turn += s;
+  const cap = (modOf(D, "deckel") || {}).v;
+  if (cap && D.turn >= cap) { D.table = D.table.map(d => Object.assign({}, d, { selected: false })); log(`Punktedeckel erreicht: Der Zug wird mit ${cap} abgeschickt.`); return finishBank(); }
   const k = E.keepSelected(D.table);
   D.table = k.dice.map(d => Object.assign({}, d, { rolled: false }));
   log(`Behalten: ${s}. Zugwert ${D.turn}.` + (k.hot ? " Alle Würfel gewertet, du würfelst mit allen neu." : ""));
@@ -1006,15 +1027,22 @@ function keepAndRoll() {
 }
 function bank() {
   const D = G.duel, s = selInfo(); if (s === null) return;
-  D.turn += s; D.pScore += D.turn;
+  D.turn += s; finishBank();
+}
+function finishBank() {
+  const D = G.duel, n = NPCS[D.npcId], cap = (modOf(D, "deckel") || {}).v;
+  if (cap && D.turn > cap) { log(`Punktedeckel: Statt ${D.turn} zählen ${cap}.`); D.turn = cap; }
+  D.pScore += D.turn;
   log(`Abgeschickt: ${D.turn}. Dein Stand: ${D.pScore}.`);
   D.table = D.table.map(d => Object.assign({}, d, { selected: false }));
-  const t = D.turn; D.turn = 0;
+  const t = D.turn; D.turn = 0; D.pTurns = (D.pTurns || 0) + 1;
   FX.play("bank"); FX.float("+" + t);
-  if (D.pScore >= NPCS[D.npcId].target) return endDuel(true);
+  if (D.pScore >= tgt(n)) return endDuel(true);
+  const z = modOf(D, "zoll");
+  if (z) { const toll = Math.floor(t * z.v / 100 / 50) * 50; if (toll > 0) { D.nScore += toll; log(`Wegezoll: ${toll} Punkte gehen an ${n.name}.`); if (D.nScore >= tgt(n)) return endDuel(false); } }
   npcTurn();
 }
-function endTurnAfterFarkle() { G.duel.table = []; npcTurn(); }
+function endTurnAfterFarkle() { const D = G.duel; D.table = []; D.pTurns = (D.pTurns || 0) + 1; if (D.pScore >= tgt(NPCS[D.npcId])) return endDuel(true); npcTurn(); }
 // ---------- Sound und Bewegung (Web Audio, ohne Dateien) ----------
 const FX = {
   ctx: null,
@@ -1065,22 +1093,23 @@ async function npcTurn() {
     if (G.duel !== D) return;
     table = E.rollUnlocked(table, byId, rng).map(d => Object.assign({}, d, { rolled: !d.locked }));
     FX.play("npcroll"); D.table = table; render(); await sleep(750);
-    if (!E.hasScoring(table.filter(d => !d.locked))) { log(`${n.name} würfelt Farkle.`); break; }
-    const choice = E.aiChoose(table, D.nFactor);
+    if (!E.hasScoring(table.filter(d => !d.locked), duelRulesN(D))) { log(`${n.name} würfelt Farkle.`); break; }
+    const choice = E.aiChoose(table, D.nFactor, duelRulesN(D));
     choice.idx.forEach(i => (table[i] = Object.assign({}, table[i], { selected: true })));
     D.table = table; render(); await sleep(650);
     turn += choice.score;
     const k = E.keepSelected(table); table = k.dice.map(d => Object.assign({}, d, { rolled: false }));
     const rem = k.hot ? 0 : table.filter(d => !d.locked).length;
     D.table = table; D.turn = turn; render();
-    if (E.aiShouldBank(n.profile, turn, rem, D.nScore, n.target)) {
+    if (E.aiShouldBank(n.profile, turn, rem, D.nScore, tgt(n))) {
       D.nScore += turn; log(`${n.name} schickt ${turn} ab. Stand ${D.nScore}.`); D.turn = 0; break;
     }
     log(`${n.name} behält ${choice.score} und würfelt weiter.`); await sleep(350);
   }
   if (G.duel !== D) return;
   D.table = []; D.turn = 0;
-  if (D.nScore >= n.target) return endDuel(false);
+  if (D.nScore >= tgt(n)) return endDuel(false);
+  const zt = modOf(D, "zeit"); if (zt && (D.pTurns || 0) >= zt.v) { log(`Zeit abgelaufen: ${D.pScore} gegen ${D.nScore}.`); return endDuel(D.pScore > D.nScore); }
   D.owner = "p"; D.phase = "idle"; render(); save();
 }
 // Besiegte Höhlengegner verschwinden nicht, sie ärgern sich und betrinken sich
@@ -1131,6 +1160,7 @@ function endDuel(win) {
     }
   }
   if (win) {
+    if (n.id === "slums:Rußige Resi" && !P.unlocks.versteck) { P.unlocks.versteck = true; res.talk = (res.talk || []).concat(["Resi: „Du hast Nerven, Kleine. Hinter der Bretterwand am Rand der Slums liegt ein altes Schmugglerlager. Niemand geht mehr hin. Ich hab keinen Schlüssel, aber die Bretter sind lose.“"]); res.lines.push("Neuer Ort: Das Versteck, erreichbar von den Slums aus."); }
     if (n.id === "gasse:Schatten-Gretel" && !P.unlocks.schwarzmarkt) { P.unlocks.schwarzmarkt = true; res.talk = ["Schatten-Gretel: „Du hast Nerven. Und Glück. Geh zu Rattenschnauze, hinten in der Gasse, hinter den Fässern. Sag, Gretel schickt dich.“"]; res.lines.push("Der Schwarzmarkt in der Gasse ist dauerhaft freigeschaltet."); }
     if (G.loc === "kneipe" && n.id === "wache:Nachtwache" && G.time <= 1 && G.quest.wachwechsel === 0) { G.quest.wachwechsel = 1; res.talk = ["Nachtwache: „Hick. Gut gewürfelt, Slumkind. Hör zu: Die Tagwache hat mich neulich im Farkle vernichtet. Keine Chance hatte ich. Seitdem prahlt sie überall mit ihrem Würfelglück und erzählt jedem, ich könne nichts.“", "Nachtwache: „Du siehst aus wie ein Wicht aus den Slums, und genau deshalb ist das meine Gelegenheit. Du hast mich geschlagen. Schlag jetzt die Tagwache, sobald sie nachmittags oder nachts hier sitzt. Und danach sag ihr, du hättest gegen mich verloren.“", "Nachtwache: „Dann muss sie glauben, ich sei besser als der Mann, der sie besiegt hat. Das frisst sie auf. Und ich sorge dafür, dass am Tor abends und nachts jemand für dich ein gutes Wort einlegt.“"]; res.lines.push("Neue Quest: „Wachwechsel“. Besiege nachmittags oder nachts die Tagwache in der Kneipe."); }
     else if (G.loc === "kneipe" && n.id === "wache:Tagwache" && G.time >= 2 && G.quest.wachwechsel === 1) { G.quest.wachwechsel = 1.5; res.wache = true; res.talk = ["Tagwache: „Was? Du? Ein Slumkind? Hick … Das war Glück. Reines Würfelglück. Ich lass mich doch nicht von einem Hungerleider schlagen. Wer hat dir das beigebracht?“"]; res.lines.push("Du hast die Tagwache besiegt. Wie antwortest du?"); }
@@ -1151,7 +1181,7 @@ function endDuel(win) {
       const a = P.achievements.held_der_stadt = P.achievements.held_der_stadt || { count: 0, day: G.day };
       a.count++; a.day = a.day || G.day;
       res.lines.push("Der Ausgang zur Aue ist frei. Du kannst die Höhlen verlassen und kehrst auf diesem Weg zur Stadt zurück.");
-      res.lines.push("★ Erfolg: Held der Stadt");
+      res.lines.push("★ Erfolg: Held der Stadt"); addRuhm(100, res); addRep("wache", 15, res);
     } else if (cleared(n.loc)) res.lines.push("Der Raum ist gesichert. Der Weg weiter ist frei.");
   }
   if (win) {
@@ -1159,9 +1189,11 @@ function endDuel(win) {
     storyEvent("win", ctx, out); if (fin) storyEvent("final", ctx, out);
     res.talk = out.talk;
   }
+  chronNote(n, win, D.nScore);
+  if (win) { addRep(factionOf(n), fin ? 3 : 1, res); addRuhm(fin ? 3 : 1, res); }
   res.rolled = D.pScore; res.win = win;
   G.lastResult = res; G.duel = null; view = "map"; save(); render();
-  openSheet(`<h2 class="${win ? "moss" : "rust"}">${win ? "Gewonnen" : "Verloren"}</h2><p class="muted small">${D.pScore} gegen ${D.nScore} Punkte, Ziel ${n.target}.</p>${(res.talk || []).map(l => `<p class="say">${esc(l)}</p>`).join("")}${res.lines.map(l => `<p>${esc(l)}</p>`).join("")}${res.wache ? wacheButtons() : '<button class="btn primary full" data-act="close">Weiter</button>'}`);
+  openSheet(`<h2 class="${win ? "moss" : "rust"}">${win ? "Gewonnen" : "Verloren"}</h2><p class="muted small">${D.pScore} gegen ${D.nScore} Punkte, Ziel ${tgt(n)}.</p>${(res.talk || []).map(l => `<p class="say">${esc(l)}</p>`).join("")}${res.lines.map(l => `<p>${esc(l)}</p>`).join("")}${res.wache ? wacheButtons() : '<button class="btn primary full" data-act="close">Weiter</button>'}`);
 }
 // Entscheidung nach dem Sieg über die Tagwache: Lüge für die Nachtwache oder Verrat an ihr
 function wacheButtons() {
@@ -1234,7 +1266,7 @@ function toggleActive(uid) {
 }
 function sell(uid) {
   const x = G.inv.find(y => y.uid === uid); if (!x || !LOCS[G.loc].dealer) return;
-  G.silver += Math.floor(byId[x.id].baseValue / 2);
+  G.silver += sellPrice(x.id);
   G.inv = G.inv.filter(y => y.uid !== uid); G.active = G.active.filter(u => u !== uid);
   save(); render();
 }
@@ -1277,6 +1309,7 @@ function award(key, out) {
   P.achievements = P.achievements || {};
   const a = P.achievements[key] = P.achievements[key] || { count: 0, day: G.day }; a.count++;
   out.lines.push(`★ Erfolg: ${ACH[key]}`);
+  addRuhm(30, out); addRep({ gilde: "gilde", siegel: "gilde", salz: "unterwelt", macher: "unterwelt", aschen: "unterwelt", wache: "wache", vorhut: "wache" }[key] || "volk", 10, out);
 }
 function freeGolden() { const ids = canonicalIds().golden.filter(id => !G.rare.used.includes(id) && canOwn(id)); const id = ids.length ? pick(ids) : null; if (id) G.rare.used.push(id); return id; }
 function giveDie(id, out) { if (!id || !canOwn(id)) return; addDie(id); out.lines.push(`Du erhältst: ${cname(id)}.`); }
@@ -1475,15 +1508,15 @@ function stockSalz() {
   }
   return G.shop2;
 }
-const nbOf = loc => { const nb = LOCS[loc].nb.slice(); if (G.flags.geheimgang) { if (loc === "schloss") nb.push("kanal"); if (loc === "kanal") nb.push("schloss"); } if (G.flags.seeweg && loc === "hafen") nb.push("aue"); return nb; };
+const nbOf = loc => { const nb = LOCS[loc].nb.filter(k => !(LOCS[k].hidden && !P.unlocks[k])); if (G.flags.geheimgang) { if (loc === "schloss") nb.push("kanal"); if (loc === "kanal") nb.push("schloss"); } if (G.flags.seeweg && loc === "hafen") nb.push("aue"); return nb; };
 
 // ---------- Speicher ----------
 function migrate() {
-  P.unlocks = P.unlocks || {}; P.qitems = P.qitems || {};
+  perm(); P.unlocks = P.unlocks || {}; P.qitems = P.qitems || {};
   P.achievements = P.achievements || {};
   E.setOccultMax(P.unlocks.okkult_set ? 4 : 3);
   if (!G || G.v !== 2) return newRun();
-  G.st = G.st || {}; G.flags = G.flags || {}; G.roam = G.roam || {}; G.disc = G.disc || 0; if (G.shop2 === undefined) G.shop2 = null;
+  G.st = G.st || {}; G.flags = G.flags || {}; if (G.rs === undefined) G.rs = Math.floor(Math.random() * 1e9); G.diff = G.diff || 0; G.roam = G.roam || {}; G.disc = G.disc || 0; if (G.shop2 === undefined) G.shop2 = null;
   initStory(G.npcs, G.rare);
   G.vis = G.vis || {}; if (LOCS[G.loc]) G.vis[G.loc] = true; if (G.prev && LOCS[G.prev]) G.vis[G.prev] = true;
   G.quest = G.quest || { wachwechsel: 0 }; if (G.quest.tunnel === undefined) G.quest.tunnel = 0;
@@ -1569,10 +1602,10 @@ let selLoc = null;
 const MAP_POS = {
   aue: [50, 45], ruine: [50, 130], dorf: [130, 90], handel: [130, 190], saal: [210, 45], schloss: [290, 45], schlosstor: [290, 125], gasthof: [215, 140],
   stadttor: [215, 240], markt: [290, 205], gilde: [320, 290], kanal: [310, 380], kaserne: [225, 335], gerber: [120, 325], slums: [45, 410], gasse: [200, 430],
-  wohn: [90, 530], kneipe: [80, 640], hafen: [190, 610], strand: [235, 705],
+  wohn: [90, 530], versteck: [40, 490], kneipe: [80, 640], hafen: [190, 610], strand: [235, 705],
   tunnel1: [325, 465], tunnel2: [325, 540], tunnel3: [325, 615], generalsaal: [330, 705]
 };
-const MAP_SHORT = { handel: "Handelsstr.", slums: "Slums", wohn: "Wohnviertel", gasse: "Gasse", kneipe: "Kneipe", hafen: "Hafen", strand: "Strand", gerber: "Gerberviertel", kaserne: "Kaserne", dorf: "Dorf", aue: "Aue", ruine: "Ruine",
+const MAP_SHORT = { handel: "Handelsstr.", slums: "Slums", versteck: "Versteck", wohn: "Wohnviertel", gasse: "Gasse", kneipe: "Kneipe", hafen: "Hafen", strand: "Strand", gerber: "Gerberviertel", kaserne: "Kaserne", dorf: "Dorf", aue: "Aue", ruine: "Ruine",
   stadttor: "Stadttor", markt: "Marktplatz", gilde: "Gildeviertel", kanal: "Kanalisation", gasthof: "Gasthof", schlosstor: "Schlosstor", schloss: "Schloss", saal: "Torsaal", tunnel1: "Spähgang", tunnel2: "Lagerhöhle", tunnel3: "Kriegskammer", generalsaal: "Hohlsaal" };
 const LOC_TEXT = {
   handel: "Breite Karrenstraße zwischen Stadttor, Dorf und den Vierteln. Hier wird gefeilscht und gewürfelt. Wer Silber hat, ist willkommen.",
@@ -1589,6 +1622,7 @@ const LOC_TEXT = {
   ruine: "Verfallene Mauern auf einem Hügel. Hier würfeln Jäger, die keine Gnade kennen. Hohe Ziele, hohe Belohnung.",
   stadttor: "Das große äußere Tor. Tagsüber hält die Tagwache es geschlossen, abends und nachts die Nachtwache. Ohne ihre Gunst kommst du nicht durch.",
   markt: "Prächtiger Marktplatz der Reichen. Kaufleute, Wechsler und die Schneiderin Fiora. Ohne Bürgerkleidung wirst du hier nicht ernst genommen.",
+  versteck: "Ein altes Schmugglerlager hinter losen Brettern. Feucht, still, und niemand weiß davon.",
   gilde: "Das Viertel der Zünfte und Banken. Meister, Schreiber und Goldschmiede, die nur Bürger empfangen.",
   kanal: "Feuchte Tunnel unter der Stadt. Ratten, Schlamm und ein Schwarzhändler, der Schlüssel verkauft. Verbindet Slums, Markt und Gildeviertel.",
   gasthof: "Vornehmer Gasthof für Edelleute. Wer hier würfelt, spielt um hohe Einsätze.",
@@ -1611,8 +1645,8 @@ function mapDetail(k) {
   const L = LOCS[k], here = k === G.loc, adj = nbOf(G.loc).includes(k), bl = adj ? blockReason(G.loc, k) : null;
   const npcs = Object.values(NPCS).filter(n => npcLoc(n) === k), open = npcs.filter(n => !(G.npcs[n.id] && (G.npcs[n.id].out || G.npcs[n.id].respawn))).length;
   const facts = [];
-  facts.push(`Ziel ${L.target} Punkte, Gegnerprofil ${L.profile}`);
-  if (!L.tunnel) facts.push(`Wachendruck dort: ${pr(k)} von ${pmax()}`); else facts.push("Kein Wachendruck");
+  if (!L.safe) facts.push(`Ziel ${L.target} Punkte, Gegnerprofil ${L.profile}`); else facts.push("Dein eigenes Versteck: Ausbau, Truhe, Talente");
+  if (!L.tunnel && !L.safe) facts.push(`Wachendruck dort: ${pr(k)} von ${pmax()}`); else if (L.tunnel) facts.push("Kein Wachendruck");
   if (npcs.length) facts.push(`${open} von ${npcs.length} Gegnern würfeln noch`);
   if (L.clothes === "adel") facts.push(`Adelskleidung nötig${G.items.adel ? " (hast du)" : ""}`); else if (L.clothes === "buerger") facts.push(`Bürgerkleidung nötig${G.items.buerger || G.items.adel ? " (hast du)" : ""}`);
   if (L.dealer) facts.push("Händler" + (P.unlocks.schwarzmarkt ? " und Schwarzmarkt" : ""));
@@ -1648,6 +1682,7 @@ function viewWorld() {
     <div class="small muted maplegend"><span><i class="lg here"></i>Du</span><span><i class="lg"></i>besucht</span><span><i class="lg unk"></i>noch nicht besucht</span><span><i class="lg bl"></i>gesperrt</span></div>
     ${mapDetail(selLoc)}</div>`;
 }
+const modsOf = n => modsFor(n);
 function viewMap() {
   const L = LOCS[G.loc];
   const list = Object.values(NPCS).filter(n => npcLoc(n) === G.loc);
@@ -1663,7 +1698,7 @@ function viewMap() {
     if (can && !fin && n.min > G.silver) { can = false; note = " · zu wenig Silber"; }
     if (can && !act) { can = false; note = " · keine aktiven Würfel"; }
     return `<div class="card npc"><div class="name">${esc(n.name)}${state}</div>
-      <div class="meta">${fin ? "Setzt einen Würfel" : `Einsatz ${n.min} bis ${Math.min(n.max, G.silver, s.budget)}`} · Ziel ${n.target}${note}</div>
+      <div class="meta">${fin ? "Setzt einen Würfel" : `Einsatz ${n.min} bis ${Math.min(n.max, G.silver, s.budget)}`} · Ziel ${tgt(n)}${modsOf(n).length ? ` · ${modsOf(n).length} Hausregel${modsOf(n).length > 1 ? "n" : ""}` : ""}${note}</div><button class="btn small ghost" data-chron="${esc(n.id)}" style="justify-self:start;margin-top:4px">Chronik</button>
       <button class="btn go ${can ? "primary" : ""}" data-duel="${esc(n.id)}" ${can ? "" : "disabled"}>Fordern</button></div>`;
   }).join("") || `<div class="card small muted">Hier ist niemand, der würfeln will.</div>`;
   const nbs = nbOf(G.loc).filter(k => !(k === "tunnel1" && !G.quest.tunnel)).map(k => {
@@ -1678,6 +1713,7 @@ function viewMap() {
     extra += P.unlocks.schwarzmarkt ? `<div class="card stack" style="gap:8px"><h3>Schwarzmarkt · Rattenschnauze</h3><button class="btn small" data-talk-open="ratte">Sprechen</button>${dieRows("black")}</div>` : `<div class="card small muted">Man flüstert von einem Schwarzmarkt. Vielleicht weiß Schatten-Gretel mehr.</div>`;
   }
   if (G.flags.salz_markt && G.loc === "hafen") extra += `<div class="card stack" style="gap:8px"><h3>Markt der Salzbrüder</h3><div class="small muted">Gezinkte Würfel, jeden Morgen neu.</div>${dieRows("salz")}</div>`;
+  if (L.safe) extra += hausCard();
   extra += storyCards();
   if (L.tailor) extra += `<div class="card stack" style="gap:8px"><h3>Kleiderhändlerin Fiora</h3><button class="btn small" data-talk-open="fiora">Sprechen</button><div class="small muted">Jede Kleidung gilt bis zum Ende des Runs und lässt sich nicht zurückverkaufen.</div>
       ${row("Bürgerkleidung", 200, `data-item="buerger"`, G.items.buerger || G.silver < 200, G.items.buerger ? "Gekauft" : null)}
@@ -1687,8 +1723,8 @@ function viewMap() {
   if (G.loc === "kneipe" && Object.values(NPCS).some(n => n.sched && npcLoc(n) === "kneipe")) extra += `<div class="card stack" style="gap:8px"><h3>${esc(Object.values(NPCS).find(n => n.sched && npcLoc(n) === "kneipe").name)} am Tresen</h3><div class="small muted">Die Wache ist hier betrunken.</div><button class="btn" data-talk-open="kneipe">Ansprechen</button></div>`;
   if (L.gate) extra += `<div class="card stack" style="gap:8px"><h3>Wache am Stadttor</h3><div class="small muted">${G.time < 2 ? "Tagsüber hält die Tagwache das Tor geschlossen." : "Abends und nachts steht die Nachtwache hier. Durchgang nur mit „Wachwechsel“ oder dem Wohlwollen der Nachtwache."} Du kannst dich ihr stellen. Das beendet deinen Run (Weg des Gerechten).</div><button class="btn" data-talk-open="tor">Mit der Wache sprechen</button></div>`;
   return `<div class="stack">
-    <div><h2>${L.name}</h2><div class="sub">${L.tunnel ? "Hier unten gibt es keine Stadtwache und keinen Wachendruck." : "Jedes Duell erhöht den Wachendruck hier um 1. Bei 10 bist du gefasst."}</div></div>
-    <div><h3>Gegner</h3>${npcHtml}</div>${extra}
+    <div><h2>${L.name}</h2><div class="sub">${L.safe ? "Hier findet dich keine Wache. Kein Wachendruck." : L.tunnel ? "Hier unten gibt es keine Stadtwache und keinen Wachendruck." : `Jedes Duell erhöht den Wachendruck hier um 1. Bei ${pmax()} bist du gefasst.`}</div></div>
+    ${L.safe ? "" : `<div><h3>Gegner</h3>${npcHtml}</div>`}${extra}
     <div class="stack" style="gap:8px"><h3>Reisen (ein Zeitschritt)</h3>${nbs}<div class="small muted">Beim Weiterreisen sinkt der Druck um 5. Zurück zum letzten Ort steigt er um 3.</div></div>
   </div>`;
 }
@@ -1696,17 +1732,17 @@ function viewMap() {
 function viewDuel() {
   const D = G.duel; if (!D) return `<p class="muted">Kein Duell aktiv.</p>`;
   const n = NPCS[D.npcId], s = G.npcs[D.npcId];
-  const head = `<div class="row"><div class="grow"><h2>${esc(n.name)}</h2><div class="sub">Ziel ${n.target} Punkte${D.factor ? ` · Okkult-Faktor ×${D.factor}` : ""}${D.stakeDie ? "" : ` · Einsatz ${D.stake} Silber`}</div></div><button class="btn small ghost" data-act="enemy">Gegner</button><button class="btn small ghost" data-act="rules">Wertung</button></div>`;
+  const head = `<div class="row"><div class="grow"><h2>${esc(n.name)}</h2><div class="sub">Ziel ${tgt(n)} Punkte${D.factor ? ` · Okkult-Faktor ×${D.factor}` : ""}${D.stakeDie ? "" : ` · Einsatz ${D.stake} Silber`}</div></div><button class="btn small ghost" data-act="enemy">Gegner</button><button class="btn small ghost" data-act="rules">Wertung</button></div>`;
   if (D.phase === "idle" && D.owner === "p" && D.pScore === 0 && D.nScore === 0 && !D.started) {
     // Einsatzwahl
     if (D.stakeDie) {
       return `<div class="stack">${head}<div class="banner bad"><b>Letztes Angebot.</b> ${esc(n.name)} setzt einen Würfel aus seinem Beutel. Gewinnst du, bekommst du ihn. Verlierst du, geht ein zufälliger aktiver Würfel von dir an ihn.</div>
-        <div class="card"><h3>Sein Einsatz</h3><div class="slot" style="max-width:120px;margin:auto">${dieHtml({ id: D.stakeDie, value: 6, selected: false, locked: false }, -1, false)}</div></div>
+        ${modsBanner(D)}<div class="card"><h3>Sein Einsatz</h3><div class="slot" style="max-width:120px;margin:auto">${dieHtml({ id: D.stakeDie, value: 6, selected: false, locked: false }, -1, false)}</div></div>
         <div class="actions"><button class="btn primary full" data-act="begin">Duell beginnen</button><button class="btn ghost full" data-act="cancel">Zurück</button></div></div>`;
     }
     const lo = n.min, hi = Math.max(lo, Math.min(n.max, G.silver, s.budget));
     const cur = Math.min(Math.max(D.stake || lo, lo), hi);
-    return `<div class="stack">${head}
+    return `<div class="stack">${head}${modsBanner(D)}
       <div class="card stack" style="gap:10px"><h3>Einsatz</h3>
         <div class="stepper"><button class="btn" data-act="stake-" aria-label="Weniger">−</button><div class="val" id="stake-val">${cur}</div><button class="btn" data-act="stake+" aria-label="Mehr">+</button></div>
         <input type="range" id="stake-range" min="${lo}" max="${hi}" value="${cur}" ${lo === hi ? "disabled" : ""} aria-label="Einsatz">
@@ -1717,7 +1753,7 @@ function viewDuel() {
   const sel = D.phase === "choose" ? selInfo() : null;
   const prev = sel !== null ? sel : 0;
   const turnShown = D.turn + (D.phase === "choose" ? prev : 0);
-  const pw = Math.min(100, D.pScore / n.target * 100), nw = Math.min(100, D.nScore / n.target * 100);
+  const pw = Math.min(100, D.pScore / tgt(n) * 100), nw = Math.min(100, D.nScore / tgt(n) * 100);
   const mineTurn = D.owner === "p";
   const keptHtml = D.table.some(d => d.locked) ? `<div class="kept"><span class="lbl">Behalten</span>${D.table.map((d, i) => d.locked ? dieHtml(d, i, false, true) : "").join("")}</div>` : "";
   const liveHtml = D.table.some(d => !d.locked) ? `<div class="tray">${D.table.map((d, i) => d.locked ? "" : dieHtml(d, i, mineTurn && D.phase === "choose")).join("")}</div>` : "";
@@ -1733,20 +1769,21 @@ function viewDuel() {
   return `<div class="stack">${head}
     <div class="score"><div class="box"><div class="muted small">Du</div><div class="num">${D.pScore}</div><div class="bar"><b style="width:${pw}%"></b></div></div>
       <div class="box"><div class="muted small">${esc(n.name.split(" ")[0])}</div><div class="num">${D.nScore}</div><div class="bar"><b style="width:${nw}%;background:var(--rust)"></b></div></div></div>
-    <div class="box card turn" style="padding:8px 12px"><span class="muted small">Zugwert</span> <b class="silvertxt" style="font-size:1.3rem">${turnShown}</b>${D.pScore + turnShown >= n.target && mineTurn ? ` <span class="moss small">reicht zum Sieg</span>` : ""}</div>
+    <div class="box card turn" style="padding:8px 12px"><span class="muted small">Zugwert</span> <b class="silvertxt" style="font-size:1.3rem">${turnShown}</b>${(modOf(D, "deckel") || {}).v ? ` <span class="small rust">Deckel ${modOf(D, "deckel").v}</span>` : ""}${modOf(D, "zeit") ? ` <span class="small muted">Zug ${Math.min((D.pTurns || 0) + 1, modOf(D, "zeit").v)} von ${modOf(D, "zeit").v}</span>` : ""}${D.pScore + turnShown >= tgt(n) && mineTurn ? ` <span class="moss small">reicht zum Sieg</span>` : ""}</div>
     ${msg}${tray}
     <div class="log">${D.log.map(l => `<div>${esc(l)}</div>`).join("")}</div>
     ${actions}</div>`;
 }
 
-function rulesHtml() {
-  const R = E.RULES, A = n => Array(n).fill("any");
+const modsBanner = D => (D.mods && D.mods.length) ? `<div class="banner bad"><b>Hausregeln</b>${D.mods.map(m => `<div class="small">• ${esc(modText(m))}</div>`).join("")}</div>` : "";
+function rulesHtml(RR0) {
+  const R = RR0 || E.RULES, z = x => x ? x + 1000 : 0, A = n => Array(n).fill("any");
   const rule = (label, groups, pts) => `<div><div class="rl">${label}</div><div class="dice">${groups.map(g => `<span class="grp">${g.map(v => miniDie(v)).join("")}</span>`).join("")}</div></div><div class="pts">${pts}</div>`;
   return `<div class="rules">
     ${rule("Einzelne 1", [[1]], R.single[1])}${rule("Einzelne 5", [[5]], R.single[5])}<hr>
     ${[1, 2, 3, 4, 5, 6].map(v => rule("Drilling", [[v, v, v]], R.triple[v])).join("")}<hr>
     ${rule("Vier gleiche", [A(4)], R.four)}${rule("Fünf gleiche", [A(5)], R.five)}${rule("Sechs gleiche", [A(6)], R.six)}
-    ${rule("Vier Einsen", [[1,1,1,1]], R.four + 1000)}${rule("Fünf Einsen", [[1,1,1,1,1]], R.five + 1000)}${rule("Sechs Einsen", [[1,1,1,1,1,1]], R.six + 1000)}<hr>
+    ${rule("Vier Einsen", [[1,1,1,1]], z(R.four))}${rule("Fünf Einsen", [[1,1,1,1,1]], z(R.five))}${rule("Sechs Einsen", [[1,1,1,1,1,1]], z(R.six))}<hr>
     ${rule("Teilstraße", [[1, 2, 3, 4, 5]], R.partialStraight)}${rule("Teilstraße", [[2, 3, 4, 5, 6]], R.partialStraight)}${rule("Straße", [[1, 2, 3, 4, 5, 6]], R.straight)}<hr>
     ${rule("Drei Paare", [A(2), A(2), A(2)], R.threePair)}${rule("Doppel-Drilling", [A(3), A(3)], R.doubleTriple)}${rule("Vierling plus Paar", [A(4), A(2)], R.fourPlusPair)}
   </div><p class="small muted">Das Sternchen steht für eine beliebige Augenzahl, jede Gruppe für eine eigene Zahl. Alle gewählten Würfel müssen zählen. Zählen alle Würfel eines Wurfs, würfelst du mit allen neu weiter. Bei mehreren Möglichkeiten gilt die beste Aufteilung.</p>`;
@@ -1787,7 +1824,7 @@ function viewBag() {
     const d = byId[x.id], on = act.has(x.uid);
     return `<div class="card stack" style="gap:6px"><div class="row"><div class="grow">${dieChip(x.id)}<b>${esc(cname(x.id))}</b><span class="stars">${esc(cmarks(x.id))}</span>${comp(x.id).cn ? `<div class="small muted">${esc(dname(x.id))}</div>` : ""}${comp(x.id).group ? `<span class="tag">${esc(comp(x.id).group)}</span>` : ""}${dbg ? `<span class="tag ${d.category === "okkult" || d.category === "golden" ? "rare" : ""}">${d.category}</span>` : ""}</div>
       <button class="btn small ${on ? "act-on" : ""}" data-active="${x.uid}" aria-pressed="${on}">${on ? "Aktiv" : "Tasche"}</button>
-      ${LOCS[G.loc].dealer ? `<button class="btn small danger" data-sell="${x.uid}">Verkaufen ${Math.floor(d.baseValue / 2)}</button>` : ""}</div>
+      ${LOCS[G.loc].dealer ? `<button class="btn small danger" data-sell="${x.uid}">Verkaufen ${sellPrice(x.id)}</button>` : ""}</div>
       ${showStats ? statBlock(x.id) : ""}${dbg ? bars(d) : ""}</div>`;
   }).join("");
   return `<div class="stack"><div><h2>Tasche</h2><div class="sub">${G.active.length} von 6 Würfeln aktiv. Du kannst auch mit weniger würfeln.</div></div>
@@ -1848,7 +1885,7 @@ function devCard() {
   return `<div class="card stack" style="gap:8px;border-color:var(--rust)"><h3>Entwickler</h3>
     <div class="small muted">Kleidung: ${cl}. Silber: ${G.silver}. Tag ${G.day}.</div>
     <div class="row wrap"><button class="btn small" data-act="dev-clothes0">Keine Kleidung</button><button class="btn small" data-act="dev-clothes1">Bürgerkleidung</button><button class="btn small" data-act="dev-clothes2">Adelskleidung</button></div>
-    <div class="row wrap"><button class="btn small" data-act="dev-silver">+1000 Silber</button><button class="btn small" data-act="dev-skins">Optik testen</button><button class="btn small" data-act="dev-off">Entwickler aus</button></div></div>`;
+    <div class="row wrap"><button class="btn small" data-act="dev-silver">+1000 Silber</button><button class="btn small" data-act="dev-skins">Optik testen</button><button class="btn small" data-act="dev-ruhm">+100 Ruhm</button><button class="btn small" data-act="dev-versteck">Versteck frei</button><button class="btn small" data-act="dev-testrule">Probe-Regel</button><button class="btn small" data-act="dev-held">Held +1</button><button class="btn small" data-act="dev-off">Entwickler aus</button></div></div>`;
 }
 function skinSheet() {
   const k = curSkin(), ti = G.items.adel ? 2 : G.items.buerger ? 1 : 0;
@@ -1865,12 +1902,27 @@ function devAct(a) {
   else if (a === "dev-clothes2") { G.items.buerger = true; G.items.adel = true; }
   else if (a === "dev-silver") G.silver += 1000;
   else if (a === "dev-skins") return skinSheet();
+  else if (a === "dev-ruhm") { P.ruhm += 100; P.ruhmTotal += 100; }
+  else if (a === "dev-versteck") P.unlocks.versteck = true;
+  else if (a === "dev-testrule") { P.rulemods.test = !P.rulemods.test; }
+  else if (a === "dev-held") { const h = P.achievements.held_der_stadt = P.achievements.held_der_stadt || { count: 0, day: G.day }; h.count++; }
   else if (a.startsWith("skin-")) { P.settings = P.settings || {}; P.settings.skin = +a.slice(5); lookKey = ""; save(); applyTier(); return skinSheet(); }
   else if (a === "dev-off") { P.settings.dev = false; }
   save(); render();
 }
+function legacyCard() {
+  perm(); const md = maxDiff(), cur = Math.min((P.settings && P.settings.diffNext) || 0, md);
+  const rep = Object.keys(FACTIONS).map(f => { const l = repLevel(f), v = P.rep[f], nx = REP_STEPS[l]; return `<div class="small"><b>${FACTIONS[f].n}</b> Stufe ${l}${nx ? ` · ${v}/${nx}` : " · Höchststufe"}<div class="muted">${l ? esc(FACTIONS[f].e[l - 1]) : esc(FACTIONS[f].e[0]).replace(/^/, "Stufe 1: ")}</div></div>`; }).join("");
+  return `<div class="card stack" style="gap:8px"><h3>Vermächtnis</h3><div class="small">Ruhm: <b class="silvertxt">${P.ruhm}</b> (insgesamt ${P.ruhmTotal}). ${P.unlocks.versteck ? "Ausgeben kannst du ihn im Versteck." : "Im Versteck (Slums, nach dem Sieg über Rußige Resi) lässt sich Ruhm ausgeben."}</div>
+    ${rep}
+    <div class="row wrap"><button class="btn small" data-act="chron-list">Gegner-Chronik</button><button class="btn small" data-act="talents">Talente</button></div>
+    <h3>Bedrohung</h3><div class="small muted">Gilt ab dem nächsten Run. Höhere Stufen machen Gegner härter (mehr Ziel, mehr Hausregeln) und bringen mehr Ruhm. ${md ? "" : "Schaffe den Helden der Stadt, um die erste Stufe freizuschalten."}</div>
+    <div class="row wrap">${[0, 1, 2, 3].map(d => `<button class="btn small ${cur === d ? "act-on" : ""}" data-diff="${d}" ${d > md ? "disabled" : ""}>${d === 0 ? "Normal" : "Stufe " + d}</button>`).join("")}</div>
+    <div class="small muted">Dieser Run: Bedrohung ${G.diff || 0}.</div></div>`;
+}
 function viewMore() {
   return `<div class="stack"><h2 data-act="devtap">Mehr</h2>${devCard()}
+    ${legacyCard()}
     <div class="card stack" style="gap:8px"><h3>Wertung</h3>${rulesHtml()}</div>
     <div class="card stack" style="gap:6px"><h3>Freischaltungen</h3>
       <div class="small">Schwarzmarkt in der Gasse: ${P.unlocks.schwarzmarkt ? "freigeschaltet" : "gesperrt (Sieg über Schatten-Gretel)"}</div>
@@ -1991,6 +2043,188 @@ function applyTier() {
   } else root.style.colorScheme = "";
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", tc);
 }
+// ---------- Dauerhaftes: Ruhm, Ruf, Chronik, Talente, Versteck, Hausregeln, Bedrohung ----------
+function perm() {
+  P.ruhm = P.ruhm || 0; P.ruhmTotal = P.ruhmTotal || 0; P.chron = P.chron || {}; P.talents = P.talents || {}; P.settings = P.settings || {};
+  P.rep = Object.assign({ gilde: 0, wache: 0, unterwelt: 0, volk: 0 }, P.rep || {});
+  P.haus = Object.assign({ truhe: [], truheStufe: 0, rast: false, werk: false }, P.haus || {});
+  P.start = Object.assign({ silber: 0, reserve: 0, gezinkt: 0 }, P.start || {});
+  P.rulemods = P.rulemods || {};
+  return P;
+}
+const hasT = id => !!(P.talents && P.talents[id]);
+const FACTIONS = {
+  gilde: { n: "Gilden und Kaufleute", e: ["Alle Händler verlangen 5 % weniger.", "Händler verlangen 10 % weniger.", "Händler verlangen 15 % weniger."] },
+  wache: { n: "Stadtwache", e: ["Der Wachendruck darf bis 11 steigen.", "Der Wachendruck darf bis 12 steigen.", "Der Wachendruck darf bis 13 steigen."] },
+  unterwelt: { n: "Unterwelt", e: ["Der Händler zahlt 10 % mehr für Würfel.", "Der Händler zahlt 20 % mehr für Würfel.", "Der Händler zahlt 30 % mehr für Würfel."] },
+  volk: { n: "Das einfache Volk", e: ["Du startest jeden Run mit 10 Silber mehr.", "Du startest mit 25 Silber mehr.", "Du startest mit 45 Silber mehr."] }
+};
+const REP_STEPS = [10, 30, 60];
+const repLevel = f => REP_STEPS.filter(x => perm().rep[f] >= x).length;
+function factionOf(n) {
+  if (n.id.startsWith("wache:") || n.tunnel || n.loc === "kaserne") return "wache";
+  if (["slums", "kanal", "gasse", "hafen", "strand", "gerber"].includes(n.loc)) return "unterwelt";
+  if (["markt", "gilde", "gasthof", "schlosstor", "schloss", "saal"].includes(n.loc)) return "gilde";
+  return "volk";
+}
+function addRep(f, n, out) {
+  const before = repLevel(f); perm().rep[f] += Math.round(n * (hasT("ruf") ? 1.5 : 1));
+  const after = repLevel(f);
+  if (out && after > before) out.lines.push(`Ruf gestiegen: ${FACTIONS[f].n}, Stufe ${after}. ${FACTIONS[f].e[after - 1]}`);
+}
+function addRuhm(n, out) {
+  n = Math.max(1, Math.round(n * (1 + .25 * hasT("ruhm")) * (1 + .5 * ((G && G.diff) || 0))));
+  perm(); P.ruhm += n; P.ruhmTotal += n;
+  if (out) out.lines.push(`+${n} Ruhm`);
+  return n;
+}
+const startSilverTotal = () => startSilver() + [0, 20, 45, 80][perm().start.silber] + [0, 10, 25, 45][repLevel("volk")];
+const discountPct = () => 5 * repLevel("gilde") + (hasT("feilscher") ? 10 : 0);
+const sellPrice = id => Math.floor(byId[id].baseValue / 2 * (1 + .1 * repLevel("unterwelt") + (hasT("feilscher") ? .25 : 0)));
+// ---------- Chronik ----------
+function chronNote(n, won, score) {
+  const c = perm().chron[n.id] = perm().chron[n.id] || { n: 0, w: 0, l: 0, best: 0 };
+  c.n++; if (won) c.w++; else c.l++; c.best = Math.max(c.best, score || 0);
+}
+const PROFILE_TXT = { vorsichtig: "Schickt früh ab und geht kaum Risiko ein.", ausgewogen: "Spielt solide und schickt bei mittlerem Zugwert ab.", risikofreudig: "Würfelt lange weiter. Hohe Zugwerte, aber oft ein Farkle.", jaeger: "Jagt das Ziel. Kann schnell gewinnen oder alles verlieren." };
+function chronLevel(id) { const c = perm().chron[id]; return c ? Math.min(3, (c.n >= 7 ? 3 : c.n >= 4 ? 2 : c.n >= 2 ? 1 : 0) + (hasT("auge") && c.n >= 1 ? 1 : 0)) : -1; }
+function chronHtml(id) {
+  const n = NPCS[id], c = perm().chron[id], lv = chronLevel(id), s = G.npcs[id];
+  if (!n) return "";
+  let h = `<h2>${esc(n.name)}</h2><div class="small muted">${esc(LOCS[n.loc].name)} · ${FACTIONS[factionOf(n)].n}</div>`;
+  if (!c) return h + `<p class="muted">Du hast noch nie gegen ${esc(n.name)} gespielt. Jedes Duell füllt die Chronik: nach 2, 4 und 7 Begegnungen erfährst du mehr.</p><button class="btn primary full" data-act="close">Schließen</button>`;
+  h += `<div class="card">Begegnungen ${c.n} · Siege ${c.w} · Niederlagen ${c.l}${c.best ? ` · bester Stand des Gegners ${c.best}` : ""}</div>`;
+  const rows = [];
+  rows.push(lv >= 1 ? `<div><b>Spielweise:</b> ${esc(PROFILE_TXT[n.profile])}</div><div><b>Ziel:</b> ${tgt(n)} Punkte, Einsatz ${n.min} bis ${n.max}</div>` : `<div class="muted">Spielweise: noch zu wenig gesehen (ab 2 Begegnungen).</div>`);
+  if (lv >= 2 && s && s.pool) { const cnt = {}; s.pool.forEach(d => { const k = byId[d].category; cnt[k] = (cnt[k] || 0) + 1; }); rows.push(`<div><b>Beutel:</b> ${Object.entries(cnt).map(([k, v]) => `${v}× ${CAT_NAME[k] || k}`).join(", ")}</div>`); }
+  else rows.push(`<div class="muted">Beutel: noch unbekannt (ab 4 Begegnungen).</div>`);
+  const mods = modsFor(n);
+  if (lv >= 3) rows.push(`<div><b>Hausregeln:</b> ${mods.length ? mods.map(m => esc(modText(m))).join(" · ") : "keine"}</div>${mods.length ? `<div class="small muted">${mods.map(modTip).filter(Boolean).map(esc).join(" ")}</div>` : ""}`);
+  else rows.push(`<div class="muted">Hausregeln und Tipps: ab 7 Begegnungen.</div>`);
+  return h + `<div class="stack" style="gap:8px;margin:8px 0">${rows.join("")}</div><button class="btn primary full" data-act="close">Schließen</button>`;
+}
+const CAT_NAME = { standard: "Standard", beschaedigt: "beschädigt", gezinkt: "gezinkt", golden: "golden", okkult: "okkult", signatur: "Signatur" };
+function chronList() {
+  const ids = Object.keys(perm().chron).filter(id => NPCS[id]).sort((a, b) => perm().chron[b].n - perm().chron[a].n);
+  return ids.length ? ids.map(id => { const c = P.chron[id]; return `<button class="btn full" data-chron="${esc(id)}" style="text-align:left;display:flex;justify-content:space-between"><span>${esc(NPCS[id].name)}</span><span class="muted small">${c.w}:${c.l} · ${"●".repeat(Math.max(0, chronLevel(id)) + 1)}${"○".repeat(3 - Math.max(0, chronLevel(id)))}</span></button>`; }).join("") : `<div class="muted small">Noch keine Begegnungen. Fordere jemanden heraus.</div>`;
+}
+// ---------- Talente ----------
+const TALENTS = [
+  { id: "trost", b: "Glück", n: "Trostpreis", c: 15, t: "Nach einem Farkle behältst du ein Viertel des verlorenen Zugwerts." },
+  { id: "atem", b: "Glück", n: "Zweiter Atem", c: 40, r: "trost", t: "Einmal pro Duell wird ein Farkle-Wurf automatisch wiederholt." },
+  { id: "feilscher", b: "Handel", n: "Feilscher", c: 15, t: "Händler verlangen 10 % weniger und zahlen 25 % mehr." },
+  { id: "ruf", b: "Handel", n: "Guter Name", c: 30, r: "feilscher", t: "Ruf bei allen Fraktionen steigt um die Hälfte schneller." },
+  { id: "fell", b: "Zähigkeit", n: "Dickes Fell", c: 20, t: "Das erste Duell an jedem Ort kostet keinen Wachendruck." },
+  { id: "schleicher", b: "Zähigkeit", n: "Schleicher", c: 35, r: "fell", t: "Beim Weiterreisen sinkt der Wachendruck um 1 mehr." },
+  { id: "auge", b: "Wissen", n: "Scharfes Auge", c: 10, t: "Die Chronik verrät eine Stufe früher mehr über Gegner." },
+  { id: "ruhm", b: "Wissen", n: "Ruhmeshunger", c: 25, r: "auge", t: "Du erhältst 25 % mehr Ruhm." }
+];
+function buyTalent(id) {
+  const t = TALENTS.find(x => x.id === id); if (!t || hasT(id) || P.ruhm < t.c || (t.r && !hasT(t.r))) return;
+  P.ruhm -= t.c; P.talents[id] = true; FX.play("coin"); save(); talentSheet();
+}
+function talentSheet() {
+  const rows = TALENTS.map(t => { const ok = !hasT(t.id) && P.ruhm >= t.c && (!t.r || hasT(t.r)) && G.loc === "versteck";
+    return `<div class="card stack" style="gap:4px"><div class="row"><div class="grow"><b>${esc(t.n)}</b> <span class="tag">${t.b}</span></div>${hasT(t.id) ? `<span class="moss">gelernt</span>` : `<button class="btn small ${ok ? "primary" : ""}" data-talent="${t.id}" ${ok ? "" : "disabled"}>${t.c} Ruhm</button>`}</div><div class="small muted">${esc(t.t)}${t.r && !hasT(t.r) ? ` Braucht: ${esc(TALENTS.find(x => x.id === t.r).n)}.` : ""}</div></div>`; }).join("");
+  openSheet(`<h2>Talente</h2><p class="small muted">Ruhm: <b class="silvertxt">${P.ruhm}</b>. Talente bleiben für immer. Lernen kannst du sie nur in deinem Versteck.</p><div class="stack" style="gap:8px">${rows}</div><button class="btn primary full" data-act="close" style="margin-top:10px">Schließen</button>`, true);
+}
+// ---------- Versteck ----------
+const STARTUPS = [
+  { k: "silber", n: "Taschengeld", max: 3, c: [10, 25, 50], t: l => `Startsilber +${[0, 20, 45, 80][l]} (jetzt ${[0, 20, 45, 80][perm().start.silber]})` },
+  { k: "reserve", n: "Reservewürfel", max: 2, c: [30, 60], t: l => `${l} zusätzliche${l === 1 ? "r" : ""} Standardwürfel zum Start` },
+  { k: "gezinkt", n: "Gezinkter Beginn", max: 2, c: [45, 90], t: l => `${l} gezinkter Würfel statt eines beschädigten zum Start` }
+];
+function startupBuy(k) {
+  const S = STARTUPS.find(x => x.k === k), l = perm().start[k]; if (!S || l >= S.max || P.ruhm < S.c[l]) return;
+  P.ruhm -= S.c[l]; P.start[k]++; FX.play("coin"); save(); render();
+}
+function hausBuild(what) {
+  perm(); const H = P.haus;
+  if (what === "rast" && !H.rast && P.ruhm >= 15) { P.ruhm -= 15; H.rast = true; }
+  else if (what === "werk" && !H.werk && P.ruhm >= 40) { P.ruhm -= 40; H.werk = true; }
+  else if (what === "truhe" && H.truheStufe < 3 && P.ruhm >= [20, 40, 80][H.truheStufe]) { P.ruhm -= [20, 40, 80][H.truheStufe]; H.truheStufe++; }
+  else return;
+  FX.play("coin"); save(); render();
+}
+function hausRast() {
+  if (!P.haus.rast || G.duel) return;
+  Object.keys(G.pressure).forEach(k => { G.pressure[k] = Math.max(0, G.pressure[k] - 3); });
+  advanceTime(); FX.play("step"); save(); render();
+  const out = newOut(); out.lines.push("Du ruhst dich aus. Der Wachendruck sinkt überall um 3."); showStory(out);
+}
+const truheOk = id => !["golden", "okkult"].includes(byId[id].category);
+function truheIn(uid) {
+  const x = G.inv.find(y => y.uid === uid), H = perm().haus; if (!x || !truheOk(x.id) || H.truhe.length >= H.truheStufe) return;
+  H.truhe.push(x.id); G.inv = G.inv.filter(y => y.uid !== uid); G.active = G.active.filter(u => u !== uid); save(); render();
+}
+function truheOut(i) { const H = perm().haus, id = H.truhe[i]; if (!id) return; H.truhe.splice(i, 1); addDie(id); save(); render(); }
+function hausCard() {
+  perm(); const H = P.haus, sg = (b, d, c, act, lbl) => `<div class="row"><div class="grow small"><b>${lbl}</b><div class="muted">${d}</div></div>${b}</div>`;
+  const buy = (c, act, ok) => `<button class="btn small ${P.ruhm >= c && ok !== false ? "primary" : ""}" data-act="${act}" ${P.ruhm >= c && ok !== false ? "" : "disabled"}>${c} Ruhm</button>`;
+  const tc = [20, 40, 80][H.truheStufe];
+  const truhe = H.truheStufe ? `<div class="stack" style="gap:6px"><h3>Würfeltruhe (${H.truhe.length} von ${H.truheStufe})</h3><div class="small muted">Eingelagerte Würfel liegen bei jedem neuen Run von Anfang an in deiner Tasche. Goldene und okkulte Würfel passen nicht hinein.</div>
+    ${H.truhe.map((id, i) => `<div class="row"><div class="grow">${dieChip(id)}<b>${esc(cname(id))}</b></div><button class="btn small" data-truhe-out="${i}">Herausnehmen</button></div>`).join("")}
+    ${G.inv.filter(x => truheOk(x.id)).slice(0, 12).map(x => `<div class="row"><div class="grow small">${dieChip(x.id)}${esc(cname(x.id))}</div><button class="btn small" data-truhe-in="${x.uid}" ${H.truhe.length >= H.truheStufe ? "disabled" : ""}>Einlagern</button></div>`).join("")}</div>` : "";
+  const ups = STARTUPS.map(S => { const l = P.start[S.k]; return `<div class="row"><div class="grow small"><b>${S.n}</b> ${"●".repeat(l)}${"○".repeat(S.max - l)}<div class="muted">${esc(S.t(Math.min(S.max, l + 1)))}</div></div>${l >= S.max ? `<span class="moss small">voll</span>` : `<button class="btn small ${P.ruhm >= S.c[l] ? "primary" : ""}" data-startup="${S.k}" ${P.ruhm >= S.c[l] ? "" : "disabled"}>${S.c[l]} Ruhm</button>`}</div>`; }).join("");
+  return `<div class="card stack" style="gap:10px"><h3>Dein Versteck</h3><div class="say">Ein altes Schmugglerlager hinter den Brettern. Feucht, still und dein eigenes.</div>
+    <div class="small">Ruhm: <b class="silvertxt">${P.ruhm}</b></div>
+    <h3>Ausbau</h3>
+    <div class="row"><div class="grow small"><b>Ruhebank</b><div class="muted">${H.rast ? "Rasten: eine Tageszeit vergeht, der Wachendruck sinkt überall um 3." : "Rasten und Wachendruck abbauen."}</div></div>${H.rast ? `<button class="btn small primary" data-act="haus-rast">Rasten</button>` : buy(15, "haus-rast-build")}</div>
+    <div class="row"><div class="grow small"><b>Werkbank</b><div class="muted">${H.werk ? "Beschädigte Würfel flicken (15 Silber), siehe Tasche." : "Beschädigte Würfel selbst flicken."}</div></div>${H.werk ? `<span class="moss small">gebaut</span>` : buy(40, "haus-werk-build")}</div>
+    <div class="row"><div class="grow small"><b>Würfeltruhe</b> Stufe ${H.truheStufe} von 3<div class="muted">Würfel überdauern den Run.</div></div>${H.truheStufe >= 3 ? `<span class="moss small">voll</span>` : buy(tc, "haus-truhe-build")}</div>
+    ${truhe}
+    ${H.werk ? `<div class="stack" style="gap:6px"><h3>Werkbank</h3>${G.inv.filter(x => byId[x.id].category === "beschaedigt").map(x => `<div class="row"><div class="grow small">${dieChip(x.id)}${esc(cname(x.id))}</div><button class="btn small" data-repair="${x.uid}" ${G.silver < 15 ? "disabled" : ""}>Flicken 15</button></div>`).join("") || `<div class="small muted">Du hast keinen beschädigten Würfel.</div>`}</div>` : ""}
+    <h3>Startvorteile</h3>${ups}
+    <div class="row"><button class="btn" data-act="talents">Talente</button></div></div>`;
+}
+// ---------- Hausregeln der Gegner, Schwarzmarkt-Regeln, Bedrohung ----------
+const HOUSE_RULES = {
+  mager1: { n: "Magere Einsen", o: { single: { 1: 50 }, triple: { 1: 500 } }, t: "Einzelne 1 zählt 50, Drilling 1er nur 500.", tip: "Setze auf Fünfen und große Gruppen." },
+  strasse: { n: "Keine Straßen", o: { partialStraight: 0, straight: 0, threePair: 0 }, t: "Straßen und drei Paare zählen nichts.", tip: "Straßen lohnen sich hier nicht." },
+  bescheiden: { n: "Bescheidene Tafel", o: { four: 500, five: 1000, six: 1500, fourPlusPair: 750, doubleTriple: 1250 }, t: "Vier-, Fünf-, Sechsgleiche und Doppel-Drilling zählen die Hälfte.", tip: "Große Gruppen sind weniger wert, kleine Kombis reichen." },
+  fuenf: { n: "Taube Fünfen", o: { single: { 5: 0 } }, t: "Einzelne 5 zählt nichts, nur in Gruppen.", tip: "Nimm Fünfen nur im Drilling oder größer." }
+};
+function modText(m) {
+  if (m.k === "deckel") return `Punktedeckel: Ein Zug zählt höchstens ${m.v}`;
+  if (m.k === "bann") return "Magiebann: Goldene und okkulte Würfel zählen als Standardwürfel";
+  if (m.k === "enge") return `Enger Tisch: Du würfelst nur mit deinen ersten ${m.v} aktiven Würfeln`;
+  if (m.k === "zeit") return `Zeitdruck: Nach ${m.v} Zügen entscheidet der Stand`;
+  if (m.k === "zoll") return `Wegezoll: ${m.v} % jedes abgeschickten Zugs gehen an den Gegner`;
+  return HOUSE_RULES[m.r] ? HOUSE_RULES[m.r].n + ": " + HOUSE_RULES[m.r].t : "";
+}
+function modTip(m) {
+  return { deckel: "Ein einzelner Riesenzug bringt nichts, plane mehrere gute Züge.", bann: "Magische Würfel helfen hier nicht, bring starke gezinkte oder Standardwürfel.", enge: "Stelle die besten Würfel an die Spitze deiner aktiven Liste.", zeit: "Hier zählt Tempo. Schicke früher ab.", zoll: "Kurze, sichere Züge verlieren weniger an den Zoll." }[m.k] || (HOUSE_RULES[m.r] && HOUSE_RULES[m.r].tip) || "";
+}
+function modsFor(n) {
+  const T = n.target, d = (G && G.diff) || 0; perm();
+  if (!G || (!n.tunnel && !n.story && T <= 2500 && !d)) return [];
+  let h = strHash(n.id + (G.rs || 0)); h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; h = (h ^ (h >>> 13)) >>> 0; h = Math.imul(h, 3266489909) >>> 0; h = (h ^ (h >>> 16)) >>> 0;
+  const hard = n.tunnel || n.story || T >= 4000;
+  const cap = Math.round(T * (1 - Math.min(.2, .05 * d)) * .4 / 250) * 250;
+  const DECKEL = { k: "deckel", v: cap }, BANN = { k: "bann" };
+  const mild = [{ k: "zoll", v: 15 }, { k: "regel", r: "mager1" }, { k: "regel", r: "strasse" }, { k: "regel", r: "fuenf" }, { k: "zeit", v: Math.max(5, Math.round(T / 800)) }];
+  const any = mild.concat([{ k: "regel", r: "bescheiden" }, { k: "enge", v: 5 }, BANN]);
+  const out = [], key = m => (m.k === "regel" ? m.r : m.k), add = m => { if (!out.some(o => key(o) === key(m))) out.push(Object.assign({}, m)); };
+  if (hard) add(DECKEL); else if ((h % 10) < 4) add(mild[h % mild.length]);
+  if (T >= 5000 || n.tunnel || n.story) add((h >>> 4) % 2 === 0 ? BANN : any[(h >>> 6) % any.length]);
+  if (n.tunnel && n.loc !== "tunnel1" || n.story) add(any[(h >>> 9) % any.length]);
+  if (n.loc === "generalsaal") add(any[(h >>> 12) % any.length]);
+  for (let i = 0; i < d && out.length < 4; i++) add(any[(h >>> (15 + i * 3)) % any.length]);
+  return out;
+}
+const tgt = n => Math.round(n.target * (1 + .15 * ((G && G.diff) || 0)) / 50) * 50;
+function duelRulesN(D) { let r = E.RULES; (D.mods || []).forEach(m => { if (m.k === "regel") r = E.mergeRules(r, HOUSE_RULES[m.r].o); }); return r; }
+function rulesP() { const D = G && G.duel; let r = D ? duelRulesN(D) : E.RULES; RULE_MODS.forEach(m => { if ((m.on || (m.dev && P.settings.dev)) && P.rulemods[m.id]) r = E.mergeRules(r, m.o); }); return r; }
+const RULE_MODS = [{ id: "test", on: false, dev: true, n: "Probe: Einzelne 5 = 75", o: { single: { 5: 75 } } }];   // Schwarzmarkt-Regelrahmen, Vorschläge siehe docs/IDEEN.md
+const modOf = (D, k) => (D.mods || []).find(m => m.k === k);
+function duelIds(D) {
+  let ids = activeDice().map(x => x.id);
+  if (modOf(D, "bann")) ids = ids.map(id => (["golden", "okkult"].includes(byId[id].category) ? "std" : id));
+  const e = modOf(D, "enge"); if (e) ids = ids.slice(0, e.v);
+  return ids;
+}
+const maxDiff = () => Math.min(3, ((perm().achievements.held_der_stadt || {}).count) || 0);
+function runEndRuhm() { const done = Object.values(G.st || {}).filter(s => s.done).length; return 1 + G.day + 4 * done; }
 function render() {
   if (!G) return;
   if (G.duel && view !== "duel" && view !== "comp") view = "duel";
@@ -2037,6 +2271,12 @@ document.addEventListener("click", e => {
   if (t.dataset.sch) { const [i, k] = t.dataset.sch.split(":"); return storyChoose(i, k); }
   if (t.dataset.sbtn) return storyBtn(t.dataset.sbtn);
   if (t.dataset.repair) return repair(+t.dataset.repair);
+  if (t.dataset.chron) return openSheet(chronHtml(t.dataset.chron), true);
+  if (t.dataset.talent) return buyTalent(t.dataset.talent);
+  if (t.dataset.startup) return startupBuy(t.dataset.startup);
+  if (t.dataset.truheIn) return truheIn(+t.dataset.truheIn);
+  if (t.dataset.truheOut) return truheOut(+t.dataset.truheOut);
+  if (t.dataset.diff !== undefined) { P.settings.diffNext = +t.dataset.diff; save(); return render(); }
   if (t.dataset.buy) { const [k, i] = t.dataset.buy.split(":"); return buy(k, +i); }
   if (t.dataset.item) return buyItem(t.dataset.item);
   if (t.dataset.preset) return preset(t.dataset.preset);
@@ -2044,7 +2284,13 @@ document.addEventListener("click", e => {
   const D = G.duel;
   if (a === "close") closeSheet();
   else if (a === "enemy") openEnemyDice();
-  else if (a === "rules") openSheet(`<h2>Wertung</h2>${rulesHtml()}<button class="btn primary full" data-act="close">Schließen</button>`, true);
+  else if (a === "talents") talentSheet();
+  else if (a === "chron-list") openSheet(`<h2>Gegner-Chronik</h2><div class="stack" style="gap:6px">${chronList()}</div><button class="btn primary full" data-act="close" style="margin-top:10px">Schließen</button>`, true);
+  else if (a === "haus-rast") hausRast();
+  else if (a === "haus-rast-build") hausBuild("rast");
+  else if (a === "haus-werk-build") hausBuild("werk");
+  else if (a === "haus-truhe-build") hausBuild("truhe");
+  else if (a === "rules") openSheet(`<h2>Wertung</h2>${G.duel && G.duel.mods ? modsBanner(G.duel) : ""}${rulesHtml(rulesP())}<button class="btn primary full" data-act="close">Schließen</button>`, true);
   else if (a === "cancel") { G.duel = null; view = "map"; render(); }
   else if (a === "stake-" || a === "stake+") { const n = NPCS[D.npcId], s = G.npcs[D.npcId]; const hi = Math.max(n.min, Math.min(n.max, G.silver, s.budget)); D.stake = Math.min(hi, Math.max(n.min, (D.stake || n.min) + (a === "stake+" ? 1 : -1))); render(); }
   else if (a === "begin") { const n = NPCS[D.npcId]; const fin = isFinal(D.npcId); const stake = D.stake || n.min; D.started = true; startDuelFrom(D, stake); }
@@ -2074,10 +2320,11 @@ document.addEventListener("click", e => {
 });
 function startDuelFrom(D, stake) {
   const id = D.npcId, s = G.npcs[id], fin = isFinal(id), bag = activeDice();
-  if (!LOCS[G.loc].tunnel) G.pressure[G.loc] = pr(G.loc) + 1;
+  if (!LOCS[G.loc].tunnel) { G.flags.fell = G.flags.fell || {}; if (hasT("fell") && !G.flags.fell[G.loc]) G.flags.fell[G.loc] = true; else G.pressure[G.loc] = pr(G.loc) + 1; }
+  D.mods = modsFor(NPCS[id]); D.pTurns = 0; D.atem = false;
   D.stake = fin ? 0 : stake;
   D.stakeDie = fin ? (D.stakeDie || pickWeighted(s.pool.map(d => [d, d === s.stolen ? 2 : 1]))) : null;
-  D.factor = E.occultFactor(bag.map(x => byId[x.id])); D.nFactor = E.occultFactor(s.pool.map(d => byId[d]));
+  D.factor = E.occultFactor(duelIds(D).map(x => byId[x])); D.nFactor = E.occultFactor(s.pool.map(d => byId[d]));
   D.phase = "idle"; D.owner = "p"; D.table = [];
   if (pr(G.loc) >= pmax()) return busted("Der Lärm hat die Wache angelockt.");
   save(); render();

@@ -156,4 +156,13 @@ t("KI nimmt zusätzliche Einsen mit", () => {
   const p = E.aiChoose(dice, 0);
   assert.ok(p.idx.length === 3 && p.score >= 1000);
 });
+t("Hausregeln: mergeRules und Wertung", () => {
+  const R = E.mergeRules(E.RULES, { single: { 1: 50 }, straight: 0, partialStraight: 0 });
+  assert.strictEqual(E.scoreSelection([{ value: 1 }], 0, R).score, 50);
+  assert.strictEqual(E.scoreSelection([{ value: 1 }], 0).score, 100);
+  assert.strictEqual(E.RULES.single[1], 100);
+  assert.strictEqual(E.scoreSelection([1,2,3,4,5,6].map(v => ({ value: v })), 0, R), null);
+  const R2 = E.mergeRules(E.RULES, { four: 0 });
+  assert.strictEqual(E.scoreSelection(Array(4).fill({ value: 1 }), 0, R2).score, 1100);
+});
 console.log("\n" + n + " Tests bestanden");

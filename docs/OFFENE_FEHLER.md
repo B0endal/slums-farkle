@@ -30,3 +30,9 @@ Stand 14.11.2026, Version Cache v11. Wird nach Testende gesammelt abgearbeitet. 
 - KI nimmt übrige 1er (immer) und 5er (wenn ≥3 Würfel bleiben oder Hot Dice) mit.
 - Spion sitzt im Gasthof; Hinweis kommt von Säufer Gundolf in der Kneipe.
 - Karte: Reisen-Button direkt am Ort. Tasche: Filter, grüner Aktiv-Button.
+
+## Neu in v16
+- Ruhm, Ruf (4 Fraktionen), Gegner-Chronik, 8 Talente, Versteck mit Ausbau und Truhe, Startvorteile.
+- Gegner-Hausregeln (Punktedeckel, Magiebann, enger Tisch, Zeitdruck, Wegezoll, Wertungsänderungen).
+- Bedrohungsstufen 1 bis 3 (nach „Held der Stadt“), Schwarzmarkt-Regelrahmen (nur Dev-Probe-Regel).
+- Noch nicht auf dem iPhone getestet. Balance der Hausregeln ist ein erster Wurf.

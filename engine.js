@@ -52,40 +52,41 @@
   };
 
   // Grundwert einer Würfelgruppe als eine Kombination, oder 0 wenn sie keine ist
-  function comboBase(vals) {
+  function comboBase(vals, R) {
+    R = R || RULES;
     const n = vals.length;
     if (vals.some(v => v === 0)) return { base: 0 };
-    if (n === 1) { const b = RULES.single[vals[0]]; return b ? { base: b, type: "single" } : { base: 0 }; }
+    if (n === 1) { const b = R.single[vals[0]]; return b ? { base: b, type: "single" } : { base: 0 }; }
     const cnt = {}; vals.forEach(v => (cnt[v] = (cnt[v] || 0) + 1));
     const keys = Object.keys(cnt).map(Number), counts = keys.map(k => cnt[k]).sort((a, b) => b - a);
     if (keys.length === 1) {
-      if (n === 3) return { base: RULES.triple[keys[0]], type: "triple" };
-      const ones = keys[0] === 1 ? 1000 : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
-      if (n === 4) return { base: RULES.four + ones, type: "four" };
-      if (n === 5) return { base: RULES.five + ones, type: "five" };
-      if (n === 6) return { base: RULES.six + ones, type: "six" };
+      if (n === 3) return { base: R.triple[keys[0]], type: "triple" };
+      const ones = keys[0] === 1 ? 1000 : 0, z = x => x ? x + ones : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
+      if (n === 4) return { base: z(R.four), type: "four" };
+      if (n === 5) return { base: z(R.five), type: "five" };
+      if (n === 6) return { base: z(R.six), type: "six" };
       return { base: 0 };
     }
     const sorted = vals.slice().sort((a, b) => a - b).join("");
-    if (n === 5 && (sorted === "12345" || sorted === "23456")) return { base: RULES.partialStraight, type: "partialStraight" };
+    if (n === 5 && (sorted === "12345" || sorted === "23456")) return { base: R.partialStraight, type: "partialStraight" };
     if (n === 6) {
-      if (sorted === "123456") return { base: RULES.straight, type: "straight" };
-      if (counts.join() === "2,2,2") return { base: RULES.threePair, type: "threePair" };
-      if (counts.join() === "3,3") return { base: RULES.doubleTriple, type: "doubleTriple" };
-      if (counts.join() === "4,2") return { base: RULES.fourPlusPair, type: "fourPlusPair" };
+      if (sorted === "123456") return { base: R.straight, type: "straight" };
+      if (counts.join() === "2,2,2") return { base: R.threePair, type: "threePair" };
+      if (counts.join() === "3,3") return { base: R.doubleTriple, type: "doubleTriple" };
+      if (counts.join() === "4,2") return { base: R.fourPlusPair, type: "fourPlusPair" };
     }
     return { base: 0 };
   }
 
   // Beste Aufteilung der Auswahl in Kombinationen. Jeder gewählte Würfel muss zählen.
   // Liefert { score, combos } oder null.
-  function scoreSelection(sel, factor) {
+  function scoreSelection(sel, factor, R) {
     const n = sel.length;
     if (!n || n > 6) return null;
     const full = (1 << n) - 1, info = new Array(full + 1);
     for (let m = 1; m <= full; m++) {
       const idx = []; for (let i = 0; i < n; i++) if (m & (1 << i)) idx.push(i);
-      const c = comboBase(idx.map(i => sel[i].value));
+      const c = comboBase(idx.map(i => sel[i].value), R);
       if (c.base) { const mult = idx.reduce((a, i) => a * dieEffect(sel[i], factor), 1); info[m] = { type: c.type, base: c.base, mult, pts: Math.round(c.base * mult) }; }
     }
     const best = new Array(full + 1).fill(null); best[0] = { score: 0, combos: [] };
@@ -102,22 +103,22 @@
   }
 
   // Gibt es im Wurf irgendeine wertbare Auswahl? (sonst Farkle)
-  function hasScoring(dice) {
+  function hasScoring(dice, R) {
     const n = dice.length;
     for (let m = 1; m < 1 << n; m++) {
       const sel = []; for (let i = 0; i < n; i++) if (m & (1 << i)) sel.push(dice[i]);
-      if (scoreSelection(sel, 0)) return true;
+      if (scoreSelection(sel, 0, R)) return true;
     }
     return false;
   }
 
   // Alle gültigen Teilmengen (Indizes) eines Wurfs mit ihrem Wert
-  function validSelections(dice, factor) {
+  function validSelections(dice, factor, R) {
     const out = [], n = dice.length;
     for (let mask = 1; mask < 1 << n; mask++) {
       const idx = [];
       for (let i = 0; i < n; i++) if (mask & (1 << i)) idx.push(i);
-      const r = scoreSelection(idx.map(i => dice[i]), factor);
+      const r = scoreSelection(idx.map(i => dice[i]), factor, R);
       if (r) out.push({ idx, score: r.score });
     }
     return out;
@@ -152,9 +153,9 @@
   const REMAIN_BONUS = { 0: 350, 1: -150, 2: -50, 3: 0, 4: 60, 5: 120, 6: 150 };
 
   // Wahl der Würfel: Punkte plus Bonus für übrig bleibende Würfel
-  function aiChoose(dice, factor) {
+  function aiChoose(dice, factor, R) {
     const free = dice.map((d, i) => ({ d, i })).filter(x => !x.d.locked);
-    const sels = validSelections(free.map(x => x.d), factor);
+    const sels = validSelections(free.map(x => x.d), factor, R);
     if (!sels.length) return null;
     let best = null;
     for (const s of sels) {
@@ -169,7 +170,7 @@
       const left = free.length - chosen.size - 1;
       if (x.d.value === 1 || (x.d.value === 5 && (left >= 3 || left === 0))) {
         const trial = [...chosen, x.i];
-        const r = scoreSelection(trial.map(i => dice[i]), factor);
+        const r = scoreSelection(trial.map(i => dice[i]), factor, R);
         if (r && r.score > best.score) { chosen.add(x.i); best = { v: r.score, idx: trial, score: r.score, rem: left }; }
       }
     }
@@ -187,23 +188,32 @@
 
   // Ein kompletter KI-Zug ohne UI. Gibt { banked, score, log } zurück.
   function aiPlayTurn(opts) {
-    const { dice: bag, dbById, factor, profile, myScore, target, rng } = opts;
+    const { dice: bag, dbById, factor, profile, myScore, target, rng, rules, cap } = opts;
     let table = bag.map(d => ({ id: d.id, occult: d.category === "okkult", totalMult: 1, locked: false }));
     let turn = 0, log = [];
     for (let guard = 0; guard < 60; guard++) {
       table = rollUnlocked(table, dbById, rng);
       const free = table.filter(d => !d.locked);
-      if (!hasScoring(free)) { log.push("farkle"); return { banked: false, score: 0, log }; }
-      const pick = aiChoose(table, factor);
+      if (!hasScoring(free, rules)) { log.push("farkle"); return { banked: false, score: 0, log }; }
+      const pick = aiChoose(table, factor, rules);
       pick.idx.forEach(i => (table[i] = Object.assign({}, table[i], { selected: true })));
       turn += pick.score;
       const k = keepSelected(table);
       table = k.dice;
       const remaining = k.hot ? 0 : table.filter(d => !d.locked).length;
       log.push({ kept: pick.score, remaining });
+      if (cap && turn >= cap) return { banked: true, score: cap, log };
       if (aiShouldBank(profile, turn, remaining, myScore, target)) return { banked: true, score: turn, log };
     }
-    return { banked: true, score: turn, log };
+    return { banked: true, score: cap ? Math.min(turn, cap) : turn, log };
+  }
+
+  // Regelsatz mit Überschreibungen zusammensetzen (flach, Einzelwerte und Drillinge getrennt)
+  function mergeRules(base, over) {
+    const r = Object.assign({}, base, { single: Object.assign({}, base.single), triple: Object.assign({}, base.triple) });
+    if (!over) return r;
+    Object.keys(over).forEach(k => { if (k === "single" || k === "triple") Object.assign(r[k], over[k]); else r[k] = over[k]; });
+    return r;
   }
 
   // Ganzes Duell zwischen zwei Beuteln (für Tests und Simulator). Beide spielen KI-Profile.
@@ -214,7 +224,7 @@
     let who = first, turns = 0;
     while (turns++ < (maxTurns || 400)) {
       const s = sides[who];
-      const r = aiPlayTurn({ dice: s.dice, dbById: s.dbById, factor: occultFactor(s.dice), profile: s.profile, myScore: sc[who], target, rng });
+      const r = aiPlayTurn({ dice: s.dice, dbById: s.dbById, factor: occultFactor(s.dice), profile: s.profile, myScore: sc[who], target, rng, rules: s.rules, cap: s.cap });
       if (r.banked) sc[who] += r.score;
       if (sc[who] >= target) return { winner: who, turns, scores: sc };
       who = who === "a" ? "b" : "a";
@@ -232,7 +242,7 @@
     };
   }
 
-  const api = { RULES, OCCULT_FACTOR_MAX, CONFIDENCE_NAMES, samplesNeeded, confidenceLevel, sideProbabilities, rollSideIndex, occultFactor, setOccultMax, scoreSelection, hasScoring, validSelections,
+  const api = { RULES, OCCULT_FACTOR_MAX, CONFIDENCE_NAMES, samplesNeeded, confidenceLevel, sideProbabilities, rollSideIndex, occultFactor, setOccultMax, scoreSelection, hasScoring, validSelections, mergeRules,
     rollUnlocked, keepSelected, AI_PROFILES, aiChoose, aiShouldBank, aiPlayTurn, simulateDuel, mulberry32 };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.FarkleEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
