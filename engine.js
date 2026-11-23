@@ -60,17 +60,17 @@
     const cnt = {}; vals.forEach(v => (cnt[v] = (cnt[v] || 0) + 1));
     const keys = Object.keys(cnt).map(Number), counts = keys.map(k => cnt[k]).sort((a, b) => b - a);
     if (keys.length === 1) {
-      if (n === 3) return { base: R.triple[keys[0]], type: "triple" };
+      if (n === 3) return { base: R.triple[keys[0]] !== undefined ? R.triple[keys[0]] : (keys[0] > 6 ? 100 * keys[0] : 0), type: "triple" };
       const ones = keys[0] === 1 ? 1000 : 0, z = x => x ? x + ones : 0; // Einsen: Vier 2000, Fünf 3000, Sechs 4000
       if (n === 4) return { base: z(R.four), type: "four" };
       if (n === 5) return { base: z(R.five), type: "five" };
       if (n === 6) return { base: z(R.six), type: "six" };
       return { base: 0 };
     }
-    const sorted = vals.slice().sort((a, b) => a - b).join("");
-    if (n === 5 && (sorted === "12345" || sorted === "23456")) return { base: R.partialStraight, type: "partialStraight" };
+    const sorted = vals.slice().sort((a, b) => a - b).join(",");
+    if (n === 5 && (sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6")) return { base: R.partialStraight, type: "partialStraight" };
     if (n === 6) {
-      if (sorted === "123456") return { base: R.straight, type: "straight" };
+      if (sorted === "1,2,3,4,5,6") return { base: R.straight, type: "straight" };
       if (counts.join() === "2,2,2") return { base: R.threePair, type: "threePair" };
       if (counts.join() === "3,3") return { base: R.doubleTriple, type: "doubleTriple" };
       if (counts.join() === "4,2") return { base: R.fourPlusPair, type: "fourPlusPair" };

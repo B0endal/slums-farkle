@@ -36,3 +36,8 @@ Stand 14.11.2026, Version Cache v11. Wird nach Testende gesammelt abgearbeitet. 
 - Gegner-Hausregeln (Punktedeckel, Magiebann, enger Tisch, Zeitdruck, Wegezoll, Wertungsänderungen).
 - Bedrohungsstufen 1 bis 3 (nach „Held der Stadt“), Schwarzmarkt-Regelrahmen (nur Dev-Probe-Regel).
 - Noch nicht auf dem iPhone getestet. Balance der Hausregeln ist ein erster Wurf.
+
+## v17
+- Credits: Icons game-icons.net (CC BY 3.0, Autorenliste im Credits-Sheet), Schriften OFL. Einzelne Icon-Autoren nicht pro Icon zugeordnet (Repo-Pfad aus der Sandbox nicht abrufbar), daher alle Mitwirkenden genannt.
+- Inseln: Ziele 3800/1200/900/700/300, ca. 4 Züge pro Gegner im Sim; auf iPhone Spielgefühl prüfen.
+- Optiken 11-15: Seefahrer, Pest & Kerzen, Elfenwald, Zwergenschmiede, Blutmond.

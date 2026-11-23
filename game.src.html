@@ -84,6 +84,10 @@ nav.tabs button {
   border-top: 2px solid transparent; cursor: pointer;
 }
 nav.tabs button[aria-current="page"] { color: var(--fg); border-top-color: var(--silver); }
+nav.tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+nav.tabs .ico { width: 20px; height: 20px; }
+nav.tabs button { padding-top: 7px; padding-bottom: 6px; }
+.ico { width: 1.1em; height: 1.1em; vertical-align: -.18em; }
 nav.tabs button:disabled { opacity: .35; cursor: default; }
 :focus-visible { outline: 2px solid var(--silver); outline-offset: 2px; }
 
@@ -132,6 +136,13 @@ nav.tabs button:disabled { opacity: .35; cursor: default; }
 .die { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
 button.dname { background: none; border: 0; padding: 0; font-family: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .die.off { cursor: default; }
+.die .num { grid-area: 1 / 1 / 4 / 4; place-self: center; font: 700 1.9rem/1 "Alegreya Sans", sans-serif; color: var(--numc, #17140f); text-shadow: 0 1px 0 #fff7; }
+.die.mini .num { font-size: 1.05rem; }
+.die.dn4 { clip-path: polygon(50% 2%, 99% 94%, 1% 94%); border-radius: 0; } .die.dn4 .num { margin-top: 34%; }
+.die.dn8 { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border-radius: 0; }
+.die.dn10 { clip-path: polygon(50% 0, 100% 38%, 50% 100%, 0 38%); border-radius: 0; } .die.dn10 .num { margin-top: 8%; }
+.die.dn12 { clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); border-radius: 0; } .die.dn12 .num { margin-top: 6%; }
+.die.dn20 { clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%); border-radius: 0; }
 .die.mini { width: 44px; max-width: 44px; padding: 5px; border-radius: var(--die-r, 17%); cursor: default; box-shadow: inset 0 1px 1px #fffc, inset 0 -3px 5px #a99c7040, 0 0 0 2px var(--moss), 0 2px 0 #0007; }
 .die.mini .x::before { font-size: 1.5rem; }
 .die.mini.any .x::before { font-size: 1.1rem; }
@@ -355,7 +366,46 @@ return module.exports; })();
 "use strict";
 const E = FarkleEngine;
 const DB = /*__DICE__*/;
-const byId = Object.fromEntries(DB.map(d => [d.id, d]));
+// ---------- Würfel-Inseln (Zusatzpaket): je Insel nur eine Würfelart, eigene Tabellen, eigener Beutel ----------
+const ISL = [
+  { d: 4,  loc: "insel4",  name: "Dreieckriff",    noun: "Tetraeder",    fee: 20,  target: 3800, profile: "ausgewogen",    pos: [60, 770],  text: "Scharfe Felsen, drei Kanten und eine Spitze. Hier würfelt man nur mit Vierseitern." },
+  { d: 8,  loc: "insel8",  name: "Rautenatoll",    noun: "Oktaeder",     fee: 40,  target: 1200, profile: "ausgewogen",    pos: [140, 815], text: "Ein Ring aus Korallen um eine ruhige Lagune. Die Einheimischen würfeln mit Achtseitern." },
+  { d: 10, loc: "insel10", name: "Zehnerklippe",   noun: "Zehnflächner", fee: 60,  target: 900, profile: "risikofreudig", pos: [225, 825], text: "Hohe Klippen, auf denen jeder Wurf zählt. Man benutzt hier nur Zehnseiter." },
+  { d: 12, loc: "insel12", name: "Zwölferhain",    noun: "Dodekaeder",   fee: 80,  target: 700, profile: "ausgewogen",    pos: [300, 800], text: "Ein stiller Hain voller Steinkreise. Heilig ist die Zwölf, und so sind es die Würfel." },
+  { d: 20, loc: "insel20", name: "Kristallinsel",  noun: "Ikosaeder",    fee: 100, target: 300, profile: "jaeger",        pos: [185, 890], text: "Funkelnde Kristalle, scharfe Winde und Zwanzigseiter. Hier ist fast jeder Wurf ein Farkle." }
+];
+const ISL_NPCS = {
+  insel4:  [["Krabbenfischer Piet", 10], ["Muschelsucher Ole", 10], ["Leuchtturmwärter Jorn", 15], ["Treibholzhändlerin Tilda", 15], ["Riffkönigin Spitz", 25]],
+  insel8:  [["Perlentaucher Mako", 15], ["Korallenschnitzerin Lani", 15], ["Salzsieder Brandt", 20], ["Zeremonienmeister Kai", 25], ["Atollherrin Rautha", 35]],
+  insel10: [["Steinmetz Gorm", 20], ["Hirtin Svea", 20], ["Klippenkletterer Ivo", 25], ["Fährmann Torben", 30], ["Klippenvogt Dezimus", 45]],
+  insel12: [["Druidin Elowen", 25], ["Imker Fenn", 25], ["Harzsammler Bjarne", 30], ["Hainwächterin Yrsa", 40], ["Hainältester Dodek", 55]],
+  insel20: [["Kristallschleifer Zan", 30], ["Glasbläserin Ilvi", 35], ["Sternendeuter Orlan", 40], ["Schiffbrüchiger Lord Fenwick", 50], ["Kristallfürst Ikos", 75]]
+};
+const ISL_GROUPS = [["1", "1", "2", "2", "3"], ["2", "2", "3", "3", "4"], ["3", "3", "4", "4", "4"], ["3", "4", "4", "5", "5"], ["4", "4", "5", "5", "5"]];
+const GEZ_W = [0, 2, 3, 4, 6];
+function islandDice() {   // Tabellen je Würfelart, analog zum W6-Satz; erzeugt zur Laufzeit, damit nichts davon die Datei aufbläht
+  const out = [], mk = (d, id, cat, base, max, w, extra) => out.push(Object.assign({ id, category: cat, faces: d, isl: true, maxInventory: max, baseValue: base, totalMult: 1,
+    sides: Array.from({ length: d }, (_, i) => ({ value: w[i] < 0 ? 0 : i + 1, weight: Math.abs(w[i]), mult: 1 })) }, extra || {}));
+  ISL.forEach(({ d }) => {
+    const k = Math.min(d, 6), one = () => Array(d).fill(1), p = `i${d}_`;
+    mk(d, p + "std", "standard", 30, 1000, one());
+    for (let f = 1; f <= k; f++) for (let m = 1; m <= k; m++) {
+      [["bd", 2], ["bq", 4]].forEach(([c, wt]) => { const w = one(); w[f - 1] = -1; if (m === f) w[f - 1] = -wt; else w[m - 1] = wt; mk(d, `${p}${c}_f${f}_m${m}`, "beschaedigt", 30, c === "bd" ? 2 : 1, w); });
+    }
+    const kinds = d >= 5 ? [[1], [5], [1, 5]] : [[1]];
+    kinds.forEach(fs => [1, 2, 3, 4].forEach(lv => { const w = one(); fs.forEach(f => { w[f - 1] = GEZ_W[lv]; }); mk(d, `${p}t${fs.join("")}_${lv}`, "gezinkt", 100, 2, w); }));
+    (d >= 5 ? [1, 5] : [1]).forEach(f => { const w = Array(d).fill(0); w[f - 1] = 1; mk(d, `${p}g${f}`, "golden", 1000, 1, w); });
+    mk(d, p + "o", "okkult", 1000, 1, one());
+    (d >= 5 ? [1, 5] : [1]).forEach(f => { const w = one(); w[f - 1] = 2; mk(d, `${p}o_${f}`, "okkult", 1000, 1, w); });
+  });
+  return out;
+}
+const ISLAND_DICE = islandDice();
+function islandCanon(d) {
+  const ids = ISLAND_DICE.filter(x => x.faces === d), by = c => ids.filter(x => x.category === c).map(x => x.id);
+  return { standard: by("standard"), beschaedigt: by("beschaedigt"), gezinkt: by("gezinkt"), golden: by("golden"), okkult: by("okkult") };
+}
+const byId = Object.fromEntries(DB.concat(ISLAND_DICE).map(d => [d.id, d]));
 const STORE = "farkle-proto-v1";
 
 // ---------- Orte und NPCs (Spezifikation v3, Abschnitte 4, 8, 13) ----------
@@ -366,14 +416,14 @@ const LOCS = {
   wohn:      { name: "Wohnviertel",         target: 2000, profile: "vorsichtig",    nb: ["slums", "gasse", "kneipe"] },
   gasse:     { name: "Gasse",               target: 2000, profile: "ausgewogen",    nb: ["handel", "wohn", "hafen"], dealer: true },
   kneipe:    { name: "Kneipe",              target: 2500, profile: "risikofreudig", nb: ["wohn", "hafen"] },
-  hafen:     { name: "Hafen",               target: 3000, profile: "risikofreudig", nb: ["gasse", "kneipe", "strand"] },
+  hafen:     { name: "Hafen",               target: 3800, profile: "risikofreudig", nb: ["gasse", "kneipe", "strand"] },
   strand:    { name: "Strand",              target: 2000, profile: "ausgewogen",    nb: ["hafen"] },
   gerber:    { name: "Gerberviertel",       target: 2500, profile: "ausgewogen",    nb: ["handel", "slums", "kaserne"] },
-  kaserne:   { name: "Kaserne",             target: 3000, profile: "ausgewogen",    nb: ["gerber", "stadttor"] },
+  kaserne:   { name: "Kaserne",             target: 3800, profile: "ausgewogen",    nb: ["gerber", "stadttor"] },
   dorf:      { name: "Dorf",                target: 2000, profile: "ausgewogen",    nb: ["handel", "aue", "ruine"] },
   aue:       { name: "Aue",                 target: 4000, profile: "ausgewogen",    nb: ["dorf", "ruine"] },
   ruine:     { name: "Ruine",               target: 5000, profile: "jaeger",        nb: ["dorf", "aue"] },
-  stadttor:  { name: "Stadttor",            target: 3000, profile: "ausgewogen",    nb: ["handel", "markt", "kaserne"], gate: true },
+  stadttor:  { name: "Stadttor",            target: 3800, profile: "ausgewogen",    nb: ["handel", "markt", "kaserne"], gate: true },
   markt:     { name: "Marktplatz",          target: 5000, profile: "risikofreudig", nb: ["stadttor", "gilde", "kanal", "gasthof", "schlosstor"], clothes: "buerger", tailor: true },
   gilde:     { name: "Gildeviertel",        target: 6000, profile: "jaeger",        nb: ["markt", "kanal"], clothes: "buerger" },
   kanal:     { name: "Innere Kanalisation", target: 2500, profile: "vorsichtig",    nb: ["markt", "gilde", "slums", "tunnel1"], gorm: true },
@@ -387,6 +437,7 @@ const LOCS = {
   tunnel3:   { name: "Kriegskammer",        target: 9000, profile: "jaeger",        nb: ["tunnel2", "generalsaal"], tunnel: true },
   generalsaal: { name: "Hohlsaal des Generals", target: 10000, profile: "jaeger",   nb: ["tunnel3", "aue"], tunnel: true }
 };
+ISL.forEach(i => { LOCS[i.loc] = { name: i.name, target: i.target, profile: i.profile, nb: ["hafen"], isl: i.d }; LOCS.hafen.nb.push(i.loc); });
 const NPCS_BY_LOC = {
   slums: [["Kalle der Einäugige", 1], ["Lumpen-Lena", 1], ["Bettler-Bert", 1], ["Hinkender Hanno", 2], ["Rußige Resi", 3]],
   kanal: [["Kanal-Ratte", 2], ["Schlamm-Sigi", 2], ["Pfützen-Paul", 3], ["Rattenfänger Rolf", 4]],
@@ -444,14 +495,15 @@ const STORY_NPCS = [
   ["rache:Tarn", "Schwarzer Tarn", "vorhut", "roam", 1, 1, 200, "7b", "jaeger", 8000],
   ["rache:Morgrim", "Rächer Morgrim", "vorhut", "roam", 2, 2, 300, "7c", "jaeger", 9000]
 ];
+ISL.forEach((i, ix) => ISL_NPCS[i.loc].forEach(([name, min], k) => { const id = i.loc + ":" + name; NPCS[id] = { id, name, loc: i.loc, target: i.target, min, max: 3 * min, startBudget: 5 * min, profile: i.profile, group: ISL_GROUPS[ix][k], dice: 6, isl: i.d }; }));
 const MACHER_POOL = ["sig_s1", "sig_s2", "sig_s3", "t15_4", "t456_4", "t23_4"];
 STORY_NPCS.forEach(([id, name, story, home, from, to, min, group, profile, target]) => {
   NPCS[id] = { id, name, story, home, from, to, target, min, max: 3 * min, startBudget: 3 * min, profile, group, dice: id.startsWith("slums:") ? 5 : 6 };
 });
 const SPY_CANDIDATES = ["Edelmann", "Edeldame Rosalind", "Baron Leopold", "Gastwirt Casimir"].map(n => "gasthof:" + n);
 // Tag- und Nachtwache wechseln mit der Tageszeit den Ort (Morgen, Mittags, Nachmittags, Nacht)
-NPCS["wache:Nachtwache"] = { id: "wache:Nachtwache", name: "Nachtwache", sched: ["kneipe", "kneipe", "stadttor", "stadttor"], target: 3000, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
-NPCS["wache:Tagwache"] = { id: "wache:Tagwache", name: "Tagwache", sched: ["stadttor", "stadttor", "kneipe", "kneipe"], target: 3000, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
+NPCS["wache:Nachtwache"] = { id: "wache:Nachtwache", name: "Nachtwache", sched: ["kneipe", "kneipe", "stadttor", "stadttor"], target: 3800, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
+NPCS["wache:Tagwache"] = { id: "wache:Tagwache", name: "Tagwache", sched: ["stadttor", "stadttor", "kneipe", "kneipe"], target: 3800, min: 30, max: 90, startBudget: 150, profile: "ausgewogen", group: "3" };
 function storyLoc(n) {
   const st = G.st && G.st[n.story]; if (!st || !st.on || st.done) return null;
   if (G.npcs[n.id] && G.npcs[n.id].out) return null;
@@ -494,7 +546,7 @@ function canonicalIds() {
     golden: g, okkult: o.concat(pairs) };
 }
 function comp(id) {   // Kompendium-Eintrag je Würfel: seen, n (totalRolls), c (counts je Seite), cn (customName), fav, prio, group
-  const c = (P.comp[id] = P.comp[id] || { n: 0, c: [0, 0, 0, 0, 0, 0, 0] });
+  const c = (P.comp[id] = P.comp[id] || { n: 0, c: Array(((byId[id] && byId[id].faces) || 6) + 1).fill(0) });
   if (c.seen === undefined) c.seen = false; if (c.cn === undefined) c.cn = ""; if (c.fav === undefined) c.fav = false;
   if (c.prio === undefined) c.prio = 0; if (c.group === undefined) c.group = "";
   return c;
@@ -505,11 +557,13 @@ const cmarks = id => { const c = comp(id); return (c.fav ? " ♥" : "") + (c.pri
 function ensureNames() {
   if (!P.seed) P.seed = DiceNames.generateSeed();
   P.names = DiceNames.assignDiceNames(P.seed, canonicalIds(), P.names || {});
+  ISL.forEach(({ d }) => DiceNames.assignDiceNames(P.seed + "|d" + d, islandCanon(d), P.names));
 }
 function dname(id) {
   const d = byId[id], e = P.names[id];
   if (d.fixedName) return d.fixedName;
-  const s = DiceNames.diceName(d.category, e, "er");
+  let s = DiceNames.diceName(d.category, e, "er");
+  if (d.isl) { const nn = ISL.find(i => i.d === d.faces).noun; s = s.replace(/Würfel/g, nn).replace(/würfel/g, nn.toLowerCase()); }
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 const rint = n => Math.floor(rng() * n);
@@ -526,24 +580,25 @@ function randomVariant(cat) {
   return "std";
 }
 // Seltene Würfel (Golden, Okkult) gibt es pro Run nur einmal: nie in zwei Pools, nie zusätzlich im Besitz des Spielers.
-function rollSlot(g, pool, R) {
+function rollSlot(g, pool, R, isl) {
   const cnt = c => pool.filter(id => byId[id].category === c).length;
   const cat = pickWeighted([["std", g.std], ["bd", g.bd], ["bq", g.bq], ["gez", g.gez], ["gold", g.gold], ["occ", g.occ]].filter(x => x[1] > 0));
   if (cat === "gez") {
-    if (cnt("gezinkt") >= g.cap) return "std";
+    if (cnt("gezinkt") >= g.cap) return isl ? `i${isl}_std` : "std";
     const lv = pickWeighted(Object.entries(g.lv));
-    return pick(["t15", "t456", "t23"]) + "_" + lv;
+    return isl ? `i${isl}_${pick(isl >= 5 ? ["t1", "t5", "t15"] : ["t1"])}_${lv}` : pick(["t15", "t456", "t23"]) + "_" + lv;
   }
   if (cat === "gold" || cat === "occ") {
-    const key = cat === "gold" ? "golden" : "okkult", ids = canonicalIds()[key];
+    const key = cat === "gold" ? "golden" : "okkult", ids = isl ? islandCanon(isl)[key] : canonicalIds()[key];
     const cap = cat === "gold" ? g.goldCap : g.occCap, glob = cat === "gold" ? (R.gmax || 2) : (R.omax || 4);
-    if (!R || cnt(key) >= cap || R[key] >= glob) return "std";
-    const free = ids.filter(id => !R.used.includes(id)); if (!free.length) return "std";
+    if (!R || cnt(key) >= cap || R[key] >= glob) return isl ? `i${isl}_std` : "std";
+    const free = ids.filter(id => !R.used.includes(id)); if (!free.length) return isl ? `i${isl}_std` : "std";
     const id = pick(free); R.used.push(id); R[key]++; return id;
   }
+  if (isl) { if (cat === "std") return `i${isl}_std`; const k = Math.min(isl, 6); return `i${isl}_${cat}_f${1 + rint(k)}_m${1 + rint(k)}`; }
   return randomVariant(cat);
 }
-function makePool(group, R, count) { const pool = []; for (let i = 0; i < (count || 6); i++) pool.push(rollSlot(GROUPS[group], pool, R)); return pool; }
+function makePool(group, R, count, isl) { const pool = []; for (let i = 0; i < (count || 6); i++) pool.push(rollSlot(GROUPS[group], pool, R, isl)); return pool; }
 // Höhlengegner: eigener Vorrat an seltenen Würfeln (bis 4 Golden, 8 Okkulte), die Stärksten bekommen zuerst
 function initTunnel(npcs, R) {
   const RT = { golden: 0, okkult: 0, used: R.used, gmax: 4, omax: 8 };
@@ -575,11 +630,11 @@ function newRun() {
   P.haus.truhe.slice().reverse().forEach(id => { if (byId[id]) inv.unshift({ uid: uidSeq++, id }); });
   const npcs = {}, R = { golden: 0, okkult: 0, used: [] };
   const order = Object.values(NPCS).slice().sort(() => rng() - 0.5);   // faire Verteilung der seltenen Würfel
-  order.filter(n => !n.tunnel && !n.story).forEach(n => { npcs[n.id] = { budget: n.startBudget, pool: makePool(n.group, R, n.dice), stolen: null, respawn: 0, lostSlot: null }; });
+  order.filter(n => !n.tunnel && !n.story).forEach(n => { npcs[n.id] = { budget: n.startBudget, pool: makePool(n.group, R, n.dice, n.isl), stolen: null, respawn: 0, lostSlot: null }; });
   initTunnel(npcs, R); initStory(npcs, R);
   inv.forEach(x => markSeen(x.id));
   G = { v: 2, day: 1, time: 0, silver: startSilverTotal(), loc: "handel", prev: null, pressure: { handel: 5 }, inv, active: inv.slice(0, 6).map(x => x.uid), diff: Math.min((P.settings && P.settings.diffNext) || 0, maxDiff()), rs: Math.floor(Math.random() * 1e9), npcs, duel: null, lastResult: null,
-    items: { buerger: false, adel: false }, quest: { wachwechsel: 0, tunnel: 0 }, shop: null, rare: R, spy: pick(SPY_CANDIDATES), st: {}, flags: {}, disc: 0, roam: {}, shop2: null, vis: {} };
+    items: { buerger: false, adel: false }, quest: { wachwechsel: 0, tunnel: 0 }, isl: {}, main: null, shop: null, rare: R, spy: pick(SPY_CANDIDATES), st: {}, flags: {}, disc: 0, roam: {}, shop2: null, vis: {} };
   view = "map";
   save();
 }
@@ -595,7 +650,7 @@ function respawn(id) {
   const s = G.npcs[id], n = NPCS[id];
   s.respawn = 0; s.budget = n.startBudget;
   const slot = s.lostSlot != null ? s.lostSlot : rint(s.pool.length), rest = s.pool.filter((_, i) => i !== slot);
-  s.pool[slot] = rollSlot(GROUPS[n.group], rest, G.rare); s.lostSlot = null;
+  s.pool[slot] = rollSlot(GROUPS[n.group], rest, G.rare, n.isl); s.lostSlot = null;
 }
 // Tor- und Schlüsselsperren auf einzelnen Verbindungen (Abschnitt 4 und 13.3)
 const hasQ = k => !!P.qitems[k];
@@ -615,15 +670,33 @@ function blockReason(a, b) {
   if (is("tunnel2", "tunnel3") && !cleared("tunnel2")) return "Raum nicht gesichert";
   if (is("tunnel3", "generalsaal") && !cleared("tunnel3")) return "Raum nicht gesichert";
   if (is("generalsaal", "aue") && !cleared("generalsaal")) return "Ausgang versperrt";
+  { const f = islFee(a, b); if (f && G.silver < f) return `Überfahrt ${f} Silber`; }
   return null;
+}
+const islFee = (a, b) => (LOCS[b].isl && !LOCS[a].isl) ? ISL.find(i => i.loc === b).fee : 0;
+function swapBag(from, dest) {   // Inselbeutel und Festlandbeutel sind getrennt
+  const a = LOCS[from], b = LOCS[dest];
+  if (!!a.isl === !!b.isl) return;
+  if (b.isl) {
+    G.main = { inv: G.inv, active: G.active };
+    const st = G.isl[dest] = G.isl[dest] || { inv: [], active: [] }, d = b.isl;
+    while (st.inv.length < 3) { const x = { uid: uidSeq++, id: `i${d}_std` }; st.inv.push(x); st.active.push(x.uid); }
+    if (!st.fresh) { st.fresh = true; while (st.inv.length < 6) { const x = { uid: uidSeq++, id: `i${d}_std` }; st.inv.push(x); st.active.push(x.uid); } }
+    G.inv = st.inv; G.active = st.active; st.inv.forEach(x => markSeen(x.id));
+  } else {
+    G.isl[from] = { inv: G.inv, active: G.active, fresh: true };
+    G.inv = G.main.inv; G.active = G.main.active; G.main = null;
+  }
 }
 function arrivalPressure(dest) { return dest === G.prev ? pr(dest) + 3 : Math.max(0, pr(G.loc) - 5 - (hasT("schleicher") ? 1 : 0)); }
 function travel(dest) {
   if (G.duel || blockReason(G.loc, dest)) return;
+  const fee = islFee(G.loc, dest); if (fee) G.silver -= fee;
+  swapBag(G.loc, dest);
   G.roam = {};
   if (dest === G.prev) { G.pressure[dest] = pr(dest) + 3; }
   else { const np = Math.max(0, pr(G.loc) - 5 - (hasT("schleicher") ? 1 : 0)); if (G.prev) G.pressure[G.prev] = 0; G.pressure[dest] = np; }
-  if (LOCS[dest].tunnel || LOCS[dest].safe) G.pressure[dest] = 0;
+  if (LOCS[dest].tunnel || LOCS[dest].safe || LOCS[dest].isl) G.pressure[dest] = 0;
   else if (G.st.salz && G.st.salz.carry) G.pressure[dest] = pr(dest) + 1;
   const from = G.loc;
   G.prev = G.loc; G.loc = dest; G.vis = G.vis || {}; G.vis[from] = true; G.vis[dest] = true;
@@ -1183,7 +1256,8 @@ function migrate() {
   P.achievements = P.achievements || {};
   E.setOccultMax(P.unlocks.okkult_set ? 4 : 3);
   if (!G || G.v !== 2) return newRun();
-  G.st = G.st || {}; G.flags = G.flags || {}; if (G.rs === undefined) G.rs = Math.floor(Math.random() * 1e9); G.diff = G.diff || 0; G.roam = G.roam || {}; G.disc = G.disc || 0; if (G.shop2 === undefined) G.shop2 = null;
+  G.st = G.st || {}; G.flags = G.flags || {}; G.isl = G.isl || {}; if (G.rs === undefined) G.rs = Math.floor(Math.random() * 1e9);
+  Object.values(NPCS).filter(n => n.isl && !G.npcs[n.id]).forEach(n => { G.npcs[n.id] = { budget: n.startBudget, pool: makePool(n.group, G.rare, n.dice, n.isl), stolen: null, respawn: 0, lostSlot: null }; }); G.diff = G.diff || 0; G.roam = G.roam || {}; G.disc = G.disc || 0; if (G.shop2 === undefined) G.shop2 = null;
   initStory(G.npcs, G.rare);
   G.vis = G.vis || {}; if (LOCS[G.loc]) G.vis[G.loc] = true; if (G.prev && LOCS[G.prev]) G.vis[G.prev] = true;
   G.quest = G.quest || { wachwechsel: 0 }; if (G.quest.tunnel === undefined) G.quest.tunnel = 0;
@@ -1235,8 +1309,9 @@ function dieLook(id) {
 const dieChip = id => `<span class="dchip die ${dieLook(id)}" aria-hidden="true" style="width:1.25em;height:1.25em;padding:0;display:inline-block;max-width:none;box-shadow:inset 0 0 0 1px #0006,0 1px 0 #0008;aspect-ratio:auto;transition:none"></span>`;
 function dieHtml(d, idx, interactive, mini) {
   const cls = ["die", dieLook(d.id)]; if (d.selected) cls.push("sel"); if (d.locked || mini) cls.push("mini"); if (!interactive) cls.push("off"); if (d.rolled) cls.push("roll");
-  if (d.value === 1) cls.push("one"); if (d.value === 0) cls.push("defect");
-  const face = d.value === 0 ? `<span class="x" aria-hidden="true"></span>` : pipHtml(d.value);
+  const fc = byId[d.id].faces;
+  if (d.value === 1 && !fc) cls.push("one"); if (d.value === 0) cls.push("defect"); if (fc) cls.push("dn" + fc);
+  const face = d.value === 0 ? `<span class="x" aria-hidden="true"></span>` : fc ? `<b class="num">${d.value}</b>` : pipHtml(d.value);
   const label = `${cname(d.id)}: ${d.value === 0 ? "defekte Seite" : d.value}${d.locked ? ", behalten" : d.selected ? ", gewählt" : ""}`;
   const btn = `<button class="${cls.join(" ")}" data-die="${idx}" title="${esc(cname(d.id))}" aria-label="${esc(label)}" ${interactive && !d.locked ? "" : "tabindex=-1"}>${face}</button>`;
   return mini || d.locked ? btn : `<div class="slot">${btn}<button class="dname" data-info="${esc(d.id)}" aria-label="Infos zu ${esc(cname(d.id))}">${esc(cname(d.id))}${cmarks(d.id)}</button></div>`;
@@ -1257,10 +1332,13 @@ function renderHeader() {
   const p = pr(G.loc);
   document.getElementById("h-guard").innerHTML = `<span>Wachendruck ${p}/${pmax()}</span><span class="seg" role="img" aria-label="Wachendruck ${p} von ${pmax()}">${Array.from({ length: pmax() }, (_, i) => `<i class="${i < p ? (p >= pmax() - 2 ? "hot" : "on") : ""}"></i>`).join("")}</span>`;
 }
+// Icons: game-icons.net (CC BY 3.0), siehe Credits
+const ICO={"treasure-map":"<path fill=\"currentColor\" d=\"M227.4 34.7c-10.1 0-20.2.2-30.2.5l6.1 65.6l-61.1-62.5c-31.3 2.5-62.5 6.6-93.8 12.5l34.2 28.4l-48-.6c35.1 100.2 6.9 182.6-.3 292.1L130 476.5c10-1.3 19.9-2.4 29.6-3.3l21.5-42.2l18.6 28.8l41.5-33.5l.8 43c82.9-.2 157.7 9.1 235.7 7.9c-28.2-73-31.2-143.6-31.9-209.2l-33.3-19.1l32.7-33.9c-.4-21.3-1.3-42-3.6-61.9l-57.4.7l50.2-41.7c-3.8-15.5-9-30.4-16.1-44.7l-29.5-23.9C335 38 281.2 34.6 227.4 34.7m58.7 37c10.6 24.75 21.1 49.5 31.7 74.3c7.5-10.5 14.9-21 22.4-31.5c16 27.2 32 54.3 48 81.5l-16.2 9.5l-33.3-56.7l-42.5 59.4l-15.2-10.9l24-33.5l-21.9-51.5l-24.6 40.1l12 22.6l-16.5 8.8l-18.3-34.5l-24.8 58.2l-17.2-7.4l32.5-76.2l7.7-18c4.8 9.2 9.6 18.3 14.5 27.4c12.5-20.6 25.1-41.11 37.7-61.6M91.2 128c6.72 1.6 13.4 3.4 19.2 5.3c-2.1 5.9-4.1 11.8-6.2 17.6c-5.79-1.6-11.72-3.4-16.9-4.7c1.39-6 2.62-12.1 3.9-18.2m37.9 13.4c6.3 3.8 12 7.2 17 12.8L132.6 167c-4-3.7-8.6-7-12.8-9.4zm28.7 32.3c2.1 7.4 2.1 15.7 1.6 22.5l-18.5-2.4c.1-5.1.3-10-1-14.5zm-21.2 35.7l17.2 7.1c-3.3 6.6-5.1 12.7-8.6 17.8l-16.3-9c2.6-5.4 5.6-10.8 7.7-15.9m-16.5 34.1l17.7 6.1c-1.5 5.4-3 11.2-3.6 16.2l-18.6-2c1.3-7.5 2.1-14 4.5-20.3m207.8 17.4c8.5 1 14.6 3 21.7 7.1l-9.8 16c-4.1-2.8-9.4-3.8-13.5-4.5zm-21.2 1.5c1.1 6.1 2.5 12.2 3.9 18.3c-5.9 1.3-11.7 3.3-16.5 5.1l-6.8-17.4c6.7-2.4 13.5-4.7 19.4-6m-37.9 15.9l11 15.1c-5.6 4-11.8 7.8-16.8 10.6l-8.9-16.4c5.1-2.9 10.6-6.3 14.7-9.3M135.3 281c1.5 4.7 4.2 9.2 6.9 12.1l-13.8 12.6c-5.5-5.7-9.5-13.5-11.2-20.1zm230.3 3.3c3.5 6.4 6.8 12.7 8.7 19.1l-17.8 5.6c-2-5.4-4.3-10.8-6.8-14.8zm-127.4 10.9l6.9 17.3c-6.4 2.7-12.9 4.8-18.6 6.5l-5-18c5.9-1.6 11.3-3.8 16.7-5.8m-83.8 6.2c5.3 1.7 10.8 3.4 15.7 4.2c-1.2 6.1-2 12.3-2.8 18.5c-7-1-14.5-3.3-20.5-5.7zm50 3.5l2.8 18.5c-7.2 1.3-13.4 1.6-19.8 1.9l-.4-18.7c5.9-.2 11.6-.8 17.4-1.7m174.5 18c1 6.4 1.6 12.9 2.2 19.3l-18.7 1.5c-.4-6-.9-11.9-2-17.8zm-67.6 30.8c18.9 3.5 44.9 16.2 68.9 33.9c7.4-9.9 14.4-20.4 21.3-31.1l30.1 12.9c-4.7 12.3-15 25.6-28.6 37.2c17 16.2 30.9 34.5 37 53c-13.8-18.1-31.1-31.8-50.3-42.8c-23.4 15.8-52.7 25.9-79.6 20.4c22.9-4.4 40.6-16.6 55.8-32.6c-16.5-7.5-33.8-13.9-51.3-20.1z\"/>","castle":"<path fill=\"currentColor\" d=\"M254.25 15.344c-132.537 0-240.188 107.62-240.188 240.156c0 132.537 107.65 240.188 240.188 240.188S494.406 388.038 494.406 255.5S386.786 15.344 254.25 15.344m0 18.687c122.436 0 221.47 99.034 221.47 221.47c0 65.65-28.465 124.583-73.75 165.125V238.75l14-22.78h-7.595L364 101.5l-43.813 114.47h-8.156l14.595 22.78v33.875h-36.813v-88.188l14.625-22.78h-7.593l-44.406-114.47l-44.375 114.47h-7.594l14.03 22.78v123.22h-37.375v-18.094l14.594-22.782h-8.19l-43.78-114.467L95.344 266.78H87.75l14.03 22.783V416.25C59.25 375.9 32.75 318.83 32.75 255.5c0-122.436 99.064-221.47 221.5-221.47zm1.094 160.532h18.687v36.344h-18.686v-36.344zm110.156 87.97h18.688v36.312H365.5V282.53zm-246.656 22.03h18.687v36.344h-18.686v-36.344zm50.875 29.407h18.686v36.342H169.72V333.97zm170.81 30.5h18.69v36.342h-18.69z\"/>","crossed-swords":"<path fill=\"currentColor\" d=\"M19.75 14.438c59.538 112.29 142.51 202.35 232.28 292.718l3.626 3.75l.063-.062c21.827 21.93 44.04 43.923 66.405 66.25c-18.856 14.813-38.974 28.2-59.938 40.312l28.532 28.53l68.717-68.717c42.337 27.636 76.286 63.646 104.094 105.81l28.064-28.06c-42.47-27.493-79.74-60.206-106.03-103.876l68.936-68.938l-28.53-28.53c-11.115 21.853-24.413 42.015-39.47 60.593c-43.852-43.8-86.462-85.842-130.125-125.47c-.224-.203-.432-.422-.656-.625C183.624 122.75 108.515 63.91 19.75 14.437zm471.875 0c-83.038 46.28-154.122 100.78-221.97 161.156l22.814 21.562l56.81-56.812l13.22 13.187l-56.438 56.44l24.594 23.186c61.802-66.92 117.6-136.92 160.97-218.72zm-329.53 125.906l200.56 200.53a403 403 0 0 1-13.405 13.032L148.875 153.53zm-76.69 113.28l-28.5 28.532l68.907 68.906c-26.29 43.673-63.53 76.414-106 103.907l28.063 28.06c27.807-42.164 61.758-78.174 104.094-105.81l68.718 68.717l28.53-28.53c-20.962-12.113-41.08-25.5-59.937-40.313c17.865-17.83 35.61-35.433 53.157-52.97l-24.843-25.655l-55.47 55.467c-4.565-4.238-9.014-8.62-13.374-13.062l55.844-55.844l-24.53-25.374c-18.28 17.856-36.602 36.06-55.158 54.594c-15.068-18.587-28.38-38.758-39.5-60.625z\"/>","swap-bag":"<path fill=\"currentColor\" d=\"M363.783 23.545c-9.782.057-16.583 3.047-20.744 10.22c-17.51 30.18-38.432 61.645-48.552 97.245c2.836.83 5.635 1.787 8.373 2.853c7.353 2.863 14.38 6.482 20.542 10.858c27.534-25.542 58.165-45.21 87.45-65.462c11.356-7.854 12.273-13.584 10.183-20.83s-9.868-16.365-20.525-23.176c-10.658-6.81-23.87-11.33-34.73-11.68q-1.02-.032-1.997-.027zm-68.998.746c-10.02-.182-17.792 6.393-23.924 20.24c-8.94 20.194-10.212 53.436-1.446 83.185c.156-.008.31-.023.467-.03c1.99-.087 3.99-.072 6 .03c9.436-34.822 27.966-64.72 44.013-91.528c-10.31-8.496-18.874-11.782-25.108-11.896zM197.5 82.5L187 97.97c14.82 10.04 29.056 19.725 39.813 31.374c3.916 4.24 7.37 8.722 10.31 13.607a38.1 38.1 0 0 1 13.69-10.792c.407-.188.82-.355 1.228-.53c-3.423-5.44-7.304-10.418-11.51-14.972C227.765 102.83 212.29 92.52 197.5 82.5m223.77 12.27c-29.255 20.228-58.575 39.152-84.348 62.78c.438.576.848 1.168 1.258 1.76c20.68-6.75 49.486-15.333 73.916-19.41c11.484-1.916 15.66-6.552 17.574-13.228s.447-16.71-5.316-26.983a63 63 0 0 0-3.083-4.92zm-223.938 47.87c-14.95.2-29.732 4.3-43.957 12.766l9.563 16.03c21.657-12.89 42.626-14.133 65.232-4.563q.782-8.387 3.728-15.21c.35-.806.73-1.586 1.123-2.354c-11.87-4.52-23.83-6.827-35.688-6.67zm75.8 3.934c-5.578-.083-10.597.742-14.427 2.526c-4.377 2.038-7.466 4.914-9.648 9.97c-.884 2.047-1.572 4.54-1.985 7.494c.456-.007.91-.03 1.365-.033c16.053-.084 32.587 2.77 49.313 9.19c7.714 2.96 15.062 7.453 22.047 13.184c3.217-2.445 4.99-4.72 5.773-6.535c1.21-2.798 1.095-5.184-.634-8.82c-3.46-7.275-15.207-16.955-28.856-22.27c-6.824-2.658-13.98-4.224-20.523-4.614q-1.228-.075-2.424-.092zm-24.757 38.457c-22.982.075-44.722 7.386-65 19.782c-32.445 19.835-60.565 53.124-80.344 90.032c-19.777 36.908-31.133 77.41-31.186 110.53c-.053 33.06 10.26 57.27 32.812 67.782c.043.02.082.043.125.063h.032c24.872 11.51 65.616 19.337 108.407 20.092c42.79.756 87.79-5.457 121.874-20.187c21.96-9.49 34.545-28.452 40.5-54.156c5.954-25.705 4.518-57.657-2.375-89.314c-6.894-31.657-19.2-63.06-34.095-87.875s-32.614-42.664-48.063-48.593c-14.664-5.627-28.898-8.2-42.687-8.156\"/>","book-cover":"<path fill=\"currentColor\" d=\"m102.53 26.063l90 345.75l289.22 23.25l-90.03-345.72zm-18.968 1.406c-30.44 11.894-55.62 53.07-49.687 75.28l3.25 11.813c.654-1.722 1.345-3.44 2.063-5.157C49.102 85.688 65.734 62.636 89.56 50.5l-6-23.03zM94.44 69.187c-16.66 10.016-29.916 28.1-38 47.437c-5.2 12.44-8 25.417-8.75 36.25v.03L112.56 388.5c.305-.572.593-1.148.907-1.72c10.585-19.223 27.804-37.623 51.06-48.405L94.438 69.187zM154 107.968l239.78 16.188l-1.28 18.625l-239.75-16.155L154 107.97zm46.03 34.407l5.657 8.875l14.188 22.313l39.03-15.25l7.595-2.938l3.97 7.094l16.28 29.124l4.313 7.72l-7.438 4.717c-10.267 6.524-17.392 12.284-21.75 16.782c-3.03 3.13-4.247 5.232-4.906 6.594c1.38.303 3.433.577 6.624.28c18.268-1.69 56.285-19.964 79-61.592l5.47-10.03l8.748 7.374l46 38.812l11.532 9.72l-13.844 6l-33.28 14.374c5.447 4.925 11.436 5.916 18.436 5.406c9.95-.724 21.427-6.07 29.125-11.063l10.158 15.657c-9.41 6.1-22.867 12.934-37.938 14.03c-15.07 1.098-32.27-5.296-42.594-23.155l-5.25-9.095l9.625-4.156l30.44-13.157l-26.033-22c-25.716 40.294-62.68 59.168-87.843 61.5c-6.78.628-12.945.26-18.594-2.688c-5.65-2.95-9.984-10.6-9-17.406s4.838-12.4 10.688-18.44c4.385-4.526 10.612-9.367 17.875-14.436l-8.188-14.656L219.5 193.75l-7.156 2.78l-4.125-6.468L196 170.875c-6.308 7.158-9.485 14.528-9 21.406c.654 9.28 7.854 21.054 30.594 33.69l-9.094 16.343c-25.688-14.273-38.877-31.016-40.125-48.72c-1.248-17.703 9.393-33.013 23.5-44.562l8.156-6.655zm-5.968 118.188l239.782 16.156l-1.25 18.655l-239.78-16.188l1.25-18.625zm-24.75 96.25c-17.637 9.072-31.065 23.708-39.468 38.968c-4.49 8.153-7.307 16.452-8.72 23.876l11.626 42.156l1.688.157c-3.824-27.514 11.358-60.383 41.187-80.97zm26.22 34c-32.403 17.28-46.273 52.303-41.657 72.78l289.78 24.532c-5.298-7.743-8.625-17.827-8.592-28.313l-22.47-9.03l46.626-7.313l-13.69-13.064c5.552-6.838 13.54-12.915 24.47-17.53l-274.47-22.063z\"/>","cog":"<path fill=\"currentColor\" d=\"M234.875 18.78c-26.087 2.367-51.557 8.56-74.875 18.782c15.37 32.763 14.222 66.706-6.72 82.407c-20.835 15.617-54.055 7.965-81.124-15.69c-16.246 19.452-29.336 41.36-38.875 65.626c33.83 12.333 56.635 37.665 52.94 63.5c-3.698 25.835-32.697 43.74-68.626 46.094c2.338 25.796 8.91 50.778 18.937 73.875c17.81-8.182 35.793-11.09 51.095-8.938c13.032 1.87 23.927 7.015 31.156 16.657c15.817 21.097 7.603 54.713-16.78 81.97c19.516 16.35 42.216 29.444 66.594 39.03c12.33-33.828 37.655-56.634 63.5-52.938c25.844 3.697 43.74 32.696 46.094 68.625c26.087-2.365 51.557-8.555 74.875-18.78c-15.766-32.997-14.26-67.588 6.843-83.406c9.64-7.23 22.568-9.022 35.594-7.125c15.112 2.16 31.19 10.25 45.563 22.78c16.088-19.345 29.4-41.51 38.875-65.594c-33.83-12.332-56.635-37.653-52.938-63.5c3.697-25.846 32.665-43.772 68.594-46.125c-2.36-25.944-8.774-50.663-18.906-73.874c-32.612 15.117-66.66 13.145-82.282-7.687c-15.696-20.944-7.252-53.86 16.688-81c-19.52-16.352-42.248-29.447-66.625-39.032c-12.332 33.828-37.657 56.66-63.5 52.968c-25.846-3.693-43.744-32.696-46.095-68.625zm21.656 95.126c79.626 0 144.376 64.752 144.376 144.375c0 79.626-64.75 144.376-144.375 144.376c-79.624 0-144.374-64.75-144.374-144.375c0-79.624 64.75-144.374 144.375-144.374zm0 18.688c-69.524 0-125.686 56.162-125.686 125.687s56.162 125.69 125.687 125.69s125.69-56.164 125.69-125.69c0-69.522-56.164-125.686-125.69-125.686zm.033 15.125c61.094 0 110.625 49.53 110.625 110.624c0 61.095-49.53 110.625-110.625 110.625s-110.625-49.53-110.625-110.626c0-61.095 49.53-110.625 110.625-110.625z\"/>","sailboat":"<path fill=\"currentColor\" d=\"M199.256 74.5v285H27.744l25.998 78h326.513l104-78h-267v-285h-18zm18 18c36.787 88.85 64.94 216 0 250h208c22-34-11.905-164.76-208-250m-36 0c-33.046 69.333-50 200-144 250h144z\"/>","anchor":"<path fill=\"currentColor\" d=\"M90.53 23c-18.345 0-36.688 7.002-50.686 21c-27.996 27.996-27.994 73.38 0 101.375c21.776 21.776 54.08 26.603 80.53 14.5l53.69 53.688c-21.425 19.696-44 38.257-67.44 55.937l30.126 30.125c18.734-22.545 37.953-44.474 57.844-65.53l169.594 169.593c-51.845 40.444-120.866 53.838-192.813 42.562L173 424.906L72.47 404.47l95.405 88.405l1.97-26c86.593 36.97 177.603 34.61 241.343-11.75l63.062 21.313l-21.47-63.594c44.61-63.62 46.408-153.412 9.908-238.875l26.03-1.97l-88.406-95.375l20.438 100.53l21.344-1.624c11.278 71.983-2.168 141.017-42.656 192.876l-169.782-169.75c21.075-20.34 42.93-39.665 65.78-57.72l-30.123-30.124c-17.015 24.154-35.673 46.66-55.688 67.813l-53.97-53.97C167.834 98.183 163.032 65.814 141.22 44c-14-13.998-32.343-21-50.69-21m0 27.03c11.434.002 22.872 4.34 31.595 13.064c17.447 17.447 17.446 45.742 0 63.187c-17.446 17.447-45.71 17.447-63.156 0c-17.447-17.444-17.448-45.74 0-63.186C67.69 54.37 79.097 50.03 90.53 50.03\"/>","crown":"<path fill=\"currentColor\" d=\"m408.256 119.46l-37.7 52.165l19.57 44.426l34.8-37.214l-16.67-59.375zm86.074 12.513L384.44 249.498L334.01 135.02l-75.162 132.947l-86.948-131.78l-33.334 114.122L17.922 132.83l39.3 127.6c1.945-.348 3.94-.54 5.98-.54c18.812 0 34.26 15.452 34.26 34.262c0 13.823-8.346 25.822-20.235 31.22l5.337 17.33c12.425 25.466 71.863 45.152 176.582 47.206c110.805 2.174 178.12-17.54 189.854-47.207h-.002l4.357-20.26c-16.836-2.114-30.02-16.612-30.02-33.986c0-18.81 15.45-34.262 34.263-34.262c3.513 0 6.91.54 10.11 1.54l26.622-123.762zm-391.77 2.04l1.22 56.337l25.56 24.89l9.592-32.842l-36.37-48.386zm150.585 2.91l-24.483 51.36l28.955 43.885l24.922-44.08l-29.395-51.166zm204.453 135.962c-8.712 0-15.575 6.862-15.575 15.572s6.863 15.574 15.575 15.574s15.572-6.863 15.572-15.573s-6.86-15.572-15.572-15.572zM63.2 278.58c-8.71 0-15.573 6.864-15.573 15.574s6.862 15.573 15.574 15.573s15.573-6.862 15.573-15.573s-6.86-15.574-15.572-15.574zm130.33 17.842c18.812 0 34.26 15.45 34.26 34.262c0 18.81-15.448 34.26-34.26 34.26c-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.26-34.262zm131.234 0c18.812 0 34.26 15.45 34.26 34.262c0 18.81-15.448 34.26-34.26 34.26c-18.813 0-34.262-15.45-34.262-34.26s15.45-34.262 34.262-34.262m-131.235 18.69c-8.713 0-15.573 6.86-15.573 15.572c0 8.71 6.86 15.574 15.572 15.574c8.71 0 15.572-6.864 15.572-15.574s-6.86-15.573-15.573-15.573zm131.234 0c-8.712 0-15.573 6.86-15.573 15.572c0 8.71 6.862 15.574 15.574 15.574s15.574-6.864 15.574-15.574s-6.862-15.573-15.574-15.573z\"/>","hood":"<path fill=\"currentColor\" d=\"M257.375 32.03C139.957 87.197 42.343 247.886 17.5 367.75c71.742 0 124.22 22.845 162.094 63.03l10.47-11.436c-28.06-28.873-64.935-52.446-113.564-75.906c26.142-65.033 66.028-163.458 116.72-169.188c19.835-2.243 41.05 9.735 64.155 43.438c72.33-120.27 141.014 38.54 180.875 125.75c-47.687 25.854-84.5 49.463-112.97 78.718l9.25 10.406c37.335-39.758 89.657-64.812 162.72-64.812C467.784 249.384 377.24 90.37 257.375 32.03m-79.72 243.314c-15.3-.083-26.405 6.436-26.405 16.656c0 12.58 16.834 26.038 37.594 30.063s37.594-2.92 37.594-15.5s-16.835-26.038-37.594-30.063c-3.893-.755-7.657-1.137-11.188-1.156zm156.345 0c-3.53.02-7.295.4-11.188 1.156c-20.76 4.025-37.593 17.483-37.593 30.063s16.833 19.524 37.592 15.5c20.76-4.025 37.594-17.484 37.594-30.063c0-10.22-11.105-16.74-26.406-16.656z\"/>"};
+function ico(n){return `<svg class="ico" viewBox="0 0 512 512" aria-hidden="true" fill="currentColor">${ICO[n]||""}</svg>`;}
 function renderTabs() {
-  const tabs = [["world", "Karte"], ["map", "Ort"], ["duel", "Duell"], ["bag", "Tasche"], ["comp", "Kompendium"], ["more", "Mehr"]];
+  const tabs = [["world", "Karte", "treasure-map"], ["map", "Ort", "castle"], ["duel", "Duell", "crossed-swords"], ["bag", "Tasche", "swap-bag"], ["comp", "Kompendium", "book-cover"], ["more", "Mehr", "cog"]];
   const lock = !!G.duel;
-  document.getElementById("tabs").innerHTML = tabs.map(([k, l]) => `<button data-tab="${k}" ${view === k ? 'aria-current="page"' : ""} ${lock && k !== "duel" && k !== "comp" ? "disabled" : ""} ${!lock && k === "duel" ? "disabled" : ""}>${l}</button>`).join("");
+  document.getElementById("tabs").innerHTML = tabs.map(([k, l, ic]) => `<button data-tab="${k}" ${view === k ? 'aria-current="page"' : ""} ${lock && k !== "duel" && k !== "comp" ? "disabled" : ""} ${!lock && k === "duel" ? "disabled" : ""}>${ico(ic)}<span>${l}</span></button>`).join("");
 }
 
 
@@ -1308,12 +1386,13 @@ function mapRoute(from, to) {
   if (!(to in prev)) return null;
   const path = []; for (let c = to; c; c = prev[c]) path.unshift(c); return path;
 }
+ISL.forEach(i => { MAP_POS[i.loc] = i.pos; MAP_SHORT[i.loc] = i.name; LOC_TEXT[i.loc] = i.text; });
 function mapDetail(k) {
   const L = LOCS[k], here = k === G.loc, adj = nbOf(G.loc).includes(k), bl = adj ? blockReason(G.loc, k) : null;
   const npcs = Object.values(NPCS).filter(n => npcLoc(n) === k), open = npcs.filter(n => !(G.npcs[n.id] && (G.npcs[n.id].out || G.npcs[n.id].respawn))).length;
   const facts = [];
   if (!L.safe) facts.push(`Ziel ${L.target} Punkte, Gegnerprofil ${L.profile}`); else facts.push("Dein eigenes Versteck: Ausbau, Truhe, Talente");
-  if (!L.tunnel && !L.safe) facts.push(`Wachendruck dort: ${pr(k)} von ${pmax()}`); else if (L.tunnel) facts.push("Kein Wachendruck");
+  if (L.isl) facts.push(`Nur Würfel mit ${L.isl} Seiten. Überfahrt ${ISL.find(i => i.loc === k).fee} Silber`); if (!L.tunnel && !L.safe && !L.isl) facts.push(`Wachendruck dort: ${pr(k)} von ${pmax()}`); else if (L.tunnel) facts.push("Kein Wachendruck");
   if (npcs.length) facts.push(`${open} von ${npcs.length} Gegnern würfeln noch`);
   if (L.clothes === "adel") facts.push(`Adelskleidung nötig${G.items.adel ? " (hast du)" : ""}`); else if (L.clothes === "buerger") facts.push(`Bürgerkleidung nötig${G.items.buerger || G.items.adel ? " (hast du)" : ""}`);
   if (L.dealer) facts.push("Händler" + (P.unlocks.schwarzmarkt ? " und Schwarzmarkt" : ""));
@@ -1321,7 +1400,7 @@ function mapDetail(k) {
   if (L.gorm) facts.push("Schwarzhändler Gorm: Kanalisationsschlüssel");
   let way = "";
   if (here) way = `<div class="small"><b>Du bist hier.</b></div>`;
-  else if (adj) way = bl ? `<div class="small rust">Gesperrt: ${esc(bl)}</div>` : `<button class="btn primary full" data-travel="${k}">Reisen nach ${esc(L.name)}${k === G.prev ? " (zurück)" : ""} · Druck dort ${arrivalPressure(k)}</button>`;
+  else if (adj) way = bl ? `<div class="small rust">Gesperrt: ${esc(bl)}</div>` : `<button class="btn primary full" data-travel="${k}">${islFee(G.loc, k) ? "Überfahrt nach " : "Reisen nach "}${esc(L.name)}${k === G.prev ? " (zurück)" : ""}${islFee(G.loc, k) ? ` · ${islFee(G.loc, k)} Silber` : L.isl ? "" : ` · Druck dort ${arrivalPressure(k)}`}</button>`;
   else { const path = mapRoute(G.loc, k); way = path ? `<div class="small"><b>Weg:</b> ${path.map(p => esc(LOCS[p].name)).join(" → ")}</div><div class="small muted">Tippe den nächsten Ort auf dem Weg an, um dorthin zu reisen.</div>` : `<div class="small muted">Von hier gibt es noch keinen bekannten Weg.</div>`; }
   return `<div class="card stack" style="gap:8px"><h3>${esc(L.name)}</h3><div class="say">${esc(LOC_TEXT[k] || "")}</div>${facts.map(f => `<div class="small muted">${esc(f)}</div>`).join("")}${way}</div>`;
 }
@@ -1390,7 +1469,7 @@ function viewMap() {
   if (G.loc === "kneipe" && Object.values(NPCS).some(n => n.sched && npcLoc(n) === "kneipe")) extra += `<div class="card stack" style="gap:8px"><h3>${esc(Object.values(NPCS).find(n => n.sched && npcLoc(n) === "kneipe").name)} am Tresen</h3><div class="small muted">Die Wache ist hier betrunken.</div><button class="btn" data-talk-open="kneipe">Ansprechen</button></div>`;
   if (L.gate) extra += `<div class="card stack" style="gap:8px"><h3>Wache am Stadttor</h3><div class="small muted">${G.time < 2 ? "Tagsüber hält die Tagwache das Tor geschlossen." : "Abends und nachts steht die Nachtwache hier. Durchgang nur mit „Wachwechsel“ oder dem Wohlwollen der Nachtwache."} Du kannst dich ihr stellen. Das beendet deinen Run (Weg des Gerechten).</div><button class="btn" data-talk-open="tor">Mit der Wache sprechen</button></div>`;
   return `<div class="stack">
-    <div><h2>${L.name}</h2><div class="sub">${L.safe ? "Hier findet dich keine Wache. Kein Wachendruck." : L.tunnel ? "Hier unten gibt es keine Stadtwache und keinen Wachendruck." : `Jedes Duell erhöht den Wachendruck hier um 1. Bei ${pmax()} bist du gefasst.`}</div></div>
+    <div><h2>${L.name}</h2><div class="sub">${L.safe ? "Hier findet dich keine Wache. Kein Wachendruck." : L.isl ? `Auf der Insel gibt es keine Wache. Du würfelst hier nur mit Würfeln mit ${L.isl} Seiten, dein Festland-Beutel liegt auf dem Schiff.` : L.tunnel ? "Hier unten gibt es keine Stadtwache und keinen Wachendruck." : `Jedes Duell erhöht den Wachendruck hier um 1. Bei ${pmax()} bist du gefasst.`}</div></div>
     ${L.safe ? "" : `<div><h3>Gegner</h3>${npcHtml}</div>`}${extra}
     <div class="stack" style="gap:8px"><h3>Reisen (ein Zeitschritt)</h3>${nbs}<div class="small muted">Beim Weiterreisen sinkt der Druck um 5. Zurück zum letzten Ort steigt er um 3.</div></div>
   </div>`;
@@ -1458,12 +1537,12 @@ function rulesHtml(RR0) {
 function statBlock(id) {
   const c = P.comp[id];
   if (!c || !c.n) return `<div class="small muted">Noch keine Würfe mit diesem Würfel.</div>`;
-  const order = [1, 2, 3, 4, 5, 6, 0], mx = Math.max(...c.c, 1), cols = "grid-template-columns:repeat(7,1fr)";
+  const order = ordFor(id), mx = Math.max(...c.c, 1), cols = colsFor(order);
   return `<div class="small muted">${c.n} Würfe · Sicherheit: ${LEVEL_NAMES[levelOf(c)]}</div><div class="bars" style="${cols}">${order.map(v => `<span class="${v === 0 ? "z" : ""}" style="height:${Math.max(3, c.c[v] / mx * 100)}%"></span>`).join("")}</div>
     <div class="bars axis" style="${cols}">${order.map(v => `<span>${v === 0 ? "✕" : v}<br>${Math.round(c.c[v] / c.n * 100)}%</span>`).join("")}</div>`;
 }
 function infoCard(id) {
-  const c = P.comp[id], nm = cname(id), order = [1, 2, 3, 4, 5, 6, 0], cols = "grid-template-columns:repeat(7,1fr)";
+  const c = P.comp[id], nm = cname(id), order = ordFor(id), cols = colsFor(order);
   const head = `<div class="row"><div class="grow">${dieChip(id)}<b>${esc(nm)}</b>${c && c.cn ? `<div class="small muted">${esc(dname(id))}</div>` : ""}</div>${c && c.prio ? `<span class="stars">${"★".repeat(c.prio)}${"☆".repeat(3 - c.prio)}</span>` : ""}${c && c.fav ? `<span aria-label="Favorit">♥</span>` : ""}</div>`;
   if (!c || !c.n) return `<div class="card stack" style="gap:6px">${head}<div class="small muted">Noch keine Würfe mit diesem Würfel gemessen.</div></div>`;
   const mx = Math.max(...c.c, 1), lv = levelOf(c);
@@ -1508,17 +1587,19 @@ function viewBag() {
 
 let compFilter = "all", compSort = "n";
 const LEVEL_NAMES = E.CONFIDENCE_NAMES;
-function levelOf(c) { let m = 3; for (let v = 0; v <= 6; v++) m = Math.min(m, E.confidenceLevel(c.n, c.c[v])); return m; }
+let compScope = "all";
+const ordFor = id => { const f = (byId[id] && byId[id].faces) || 6; return Array.from({ length: f }, (_, i) => i + 1).concat([0]); };
+const colsFor = o => `grid-template-columns:repeat(${o.length},1fr)${o.length > 12 ? ";gap:1px;font-size:.5rem" : ""}`;
+function levelOf(c) { let m = 3; for (let v = 0; v < c.c.length; v++) m = Math.min(m, E.confidenceLevel(c.n, c.c[v])); return m; }
 const dots = lv => "●".repeat(lv) + "○".repeat(3 - lv);
 function viewComp() {
-  const order = [1, 2, 3, 4, 5, 6, 0], cols = "grid-template-columns:repeat(7,1fr)";
-  let ids = Object.keys(P.comp).filter(id => byId[id] && (comp(id).seen || comp(id).n > 0));
+  let ids = Object.keys(P.comp).filter(id => byId[id] && (comp(id).seen || comp(id).n > 0) && (compScope === "all" ? !byId[id].faces : byId[id].faces === +compScope));
   const groups = [...new Set(ids.map(id => comp(id).group).filter(Boolean))].sort();
   if (compFilter === "fav") ids = ids.filter(id => comp(id).fav);
   else if (compFilter.startsWith("g:")) ids = ids.filter(id => comp(id).group === compFilter.slice(2));
   ids.sort((x, y) => compSort === "name" ? cname(x).localeCompare(cname(y), "de") : compSort === "prio" ? (comp(y).prio - comp(x).prio) || (comp(y).n - comp(x).n) : comp(y).n - comp(x).n);
   const rows = ids.map(id => {
-    const c = comp(id), mx = Math.max(...c.c, 1), lv = levelOf(c);
+    const c = comp(id), mx = Math.max(...c.c, 1), lv = levelOf(c), order = ordFor(id), cols = colsFor(order);
     return `<div class="card stack" style="gap:6px"><div class="row"><div class="grow"><b>${esc(cname(id))}</b>${c.cn ? `<div class="small muted">${esc(dname(id))}</div>` : ""}${c.group ? `<span class="tag">${esc(c.group)}</span>` : ""}</div>
       <span class="stars" aria-label="Priorität ${c.prio} von 3">${"★".repeat(c.prio)}${"☆".repeat(3 - c.prio)}</span>${c.fav ? `<span aria-label="Favorit">♥</span>` : ""}
       <button class="btn small" data-cedit="${esc(id)}">Bearbeiten</button></div>
@@ -1529,6 +1610,7 @@ function viewComp() {
   const chip = (k, l) => `<button class="btn small ${compFilter === k ? "on" : ""}" data-cf="${esc(k)}" aria-pressed="${compFilter === k}">${esc(l)}</button>`;
   const sort = (k, l) => `<button class="btn small ${compSort === k ? "on" : ""}" data-cs="${k}" aria-pressed="${compSort === k}">${l}</button>`;
   return `<div class="stack"><div><h2>Kompendium der Betrüger</h2><div class="sub">Wie oft jede Augenzahl bei einem Würfel gefallen ist. Das Kreuz steht für eine defekte Seite. Die Punkte zeigen, wie sicher der Messwert schon ist (○○○ unklar, ●○○ Tendenz, ●●○ wahrscheinlich, ●●● gesichert, bei etwa ±5 %). Sie sind nur ein Hinweis, du entscheidest.</div></div>
+    <div class="chips">${["all", 4, 8, 10, 12, 20].map(k => `<button class="btn small ${String(compScope) === String(k) ? "on" : ""}" data-cscope="${k}">${k === "all" ? "Festland (W6)" : "W" + k}</button>`).join("")}</div>
     <div class="chips">${chip("all", "Alle")}${chip("fav", "♥ Favoriten")}${groups.map(g => chip("g:" + g, g)).join("")}</div>
     <div class="chips"><span class="small muted" style="align-self:center">Sortieren:</span>${sort("n", "Würfe")}${sort("prio", "Priorität")}${sort("name", "Name")}</div>
     ${rows || `<div class="card muted">${compFilter === "all" ? "Noch keine Würfel gesehen. Fordere jemanden heraus, dann füllt sich diese Seite." : "Hier ist nichts eingetragen."}</div>`}</div>`;
@@ -1554,6 +1636,13 @@ function devCard() {
     <div class="row wrap"><button class="btn small" data-act="dev-clothes0">Keine Kleidung</button><button class="btn small" data-act="dev-clothes1">Bürgerkleidung</button><button class="btn small" data-act="dev-clothes2">Adelskleidung</button></div>
     <div class="row wrap"><button class="btn small" data-act="dev-silver">+1000 Silber</button><button class="btn small" data-act="dev-skins">Optik testen</button><button class="btn small" data-act="dev-ruhm">+100 Ruhm</button><button class="btn small" data-act="dev-versteck">Versteck frei</button><button class="btn small" data-act="dev-testrule">Probe-Regel</button><button class="btn small" data-act="dev-held">Held +1</button><button class="btn small" data-act="dev-off">Entwickler aus</button></div></div>`;
 }
+function creditsSheet() {
+  openSheet(`<h2>Credits</h2><div class="stack" style="gap:10px">
+    <div class="small"><b>Symbole</b><br>${ico("sailboat")} ${ico("anchor")} ${ico("crown")} ${ico("hood")} Icons von <b>game-icons.net</b>, Lizenz CC BY 3.0 (creativecommons.org/licenses/by/3.0). Icons made by Lorc, Delapouite and other contributors of game-icons.net: John Colburn, Felbrigg, John Redman, Carl Olsen, Sbed, PriorBlue, Willdabeast, Lord Berandas, Irongamer, HeavenlyDog, Lucas, Faithtoken, Skoll, Andy Meneely, Cathelineau, Kier Heyl, Aussiesim, Sparker, Rihlsul, Quoting, Guard13007, DarkZaitzev, SpencerDub, GeneralAce135, Zajkonur, Catsu, Starseeker, Pepijn Poolman, Pierre Leducq, Caro Asercion, SeregaCthtuf. Die Icons wurden zugeschnitten und eingefärbt.</div>
+    <div class="small"><b>Schriften</b><br>Pirata One (Rodrigo Fuenzalida) und Alegreya Sans (Juan Pablo del Peral), beide unter der SIL Open Font License 1.1.</div>
+    <div class="small"><b>Alles andere</b><br>Würfel, Oberflächen, Klänge, Texte und Figuren sind selbst gemacht und stammen ohne fremde Bild- oder Tondateien aus dem Spiel selbst.</div>
+    <button class="btn primary full" data-act="close">Fertig</button></div>`, true);
+}
 function skinSheet() {
   const k = curSkin(), ti = G.items.adel ? 2 : G.items.buerger ? 1 : 0;
   const rows = SKINS.map((S, i) => {
@@ -1569,6 +1658,7 @@ function devAct(a) {
   else if (a === "dev-clothes2") { G.items.buerger = true; G.items.adel = true; }
   else if (a === "dev-silver") G.silver += 1000;
   else if (a === "dev-skins") return skinSheet();
+  else if (a === "credits") return creditsSheet();
   else if (a === "dev-ruhm") { P.ruhm += 100; P.ruhmTotal += 100; }
   else if (a === "dev-versteck") P.unlocks.versteck = true;
   else if (a === "dev-testrule") { P.rulemods.test = !P.rulemods.test; }
@@ -1616,6 +1706,7 @@ function viewMore() {
       <div class="small muted">Kopiere den Code in eine Notiz. Zum Laden hier einfügen:</div>
       <textarea id="import" placeholder="Code einfügen" aria-label="Code einfügen"></textarea>
       <button class="btn" data-act="import">Laden</button><div class="small" id="imp-msg"></div></div>
+    <div class="card stack" style="gap:8px"><h3>Credits</h3><button class="btn" data-act="credits">Credits ansehen</button></div>
     <div class="card stack" style="gap:8px"><h3>Aufgeben</h3><div class="small muted">Der Weg des Gerechten: Geh zur Wache am Stadttor (nicht in der Kneipe, dort ist sie betrunken) und stell dich. Dein Run endet, Kompendium, Namen, Unlocks und Quest-Items bleiben.</div></div></div>`;
 }
 
@@ -1636,7 +1727,7 @@ const SKINS = [
     t: [["#121315", "#1f2124", "#2c2f33", "#4a4f55", "#e6e8ea", "#a3a9b0", "#9aa5ad", "#101214"],
         ["#101315", "#1b2227", "#26313a", "#4e6068", "#e9eef0", "#a9b8bf", "#a8c0c8", "#0e1417"],
         ["#0f1115", "#1c2030", "#292f45", "#5a6488", "#eef0f6", "#b2b8cf", "#c9b36a", "#1a1405"]] },
-  { n: "Eisen & Blut", d: "Dunkles Eisen, getrocknetes Rot.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .4, deco: 3,
+  { numc: "#f4ecd8", n: "Eisen & Blut", d: "Dunkles Eisen, getrocknetes Rot.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .4, deco: 3,
     die: ["radial-gradient(circle at 28% 22%, #7c8086 0%, #3a3d42 55%, #1c1e22 100%)", "radial-gradient(circle at 34% 30%, #fffaf0 0, #d9d0bd 66%)"],
     t: [["#110c0b", "#221615", "#321f1c", "#5c3a35", "#efe3df", "#b7a39d", "#b8553f", "#170806"],
         ["#120d0c", "#251817", "#371f1e", "#704040", "#f2e6e2", "#c0a9a3", "#cf6a52", "#190806"],
@@ -1666,18 +1757,45 @@ const SKINS = [
     t: [["#0c1114", "#182229", "#243440", "#475f70", "#e8f0f5", "#a7bac7", "#9ec3dc", "#0a1318"],
         ["#0c1216", "#1a2832", "#26394a", "#55738a", "#eaf2f7", "#aec3d2", "#bfe0f2", "#0a141b"],
         ["#0b1018", "#172336", "#223454", "#4a6fb0", "#eef3fa", "#b4c4de", "#e6edf6", "#0c1626"]] },
-  { n: "Glutasche", d: "Kohle mit glimmenden Augen.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .42, deco: 3,
+  { numc: "#ffd9a0", n: "Glutasche", d: "Kohle mit glimmenden Augen.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .42, deco: 3,
     die: ["radial-gradient(circle at 28% 22%, #55504b 0%, #26221f 55%, #0f0e0d 100%)", "radial-gradient(circle at 34% 30%, #ffe0a0 0, #e0702a 66%)"],
     t: [["#0e0d0d", "#1c1a19", "#2a2725", "#4d4642", "#ece4dc", "#aea298", "#e0833a", "#1a0c03"],
         ["#100e0d", "#211d1a", "#312a25", "#63554a", "#f0e7dd", "#b8aa9c", "#f09a4a", "#1c0d03"],
         ["#120b0b", "#2a1514", "#3d1e1b", "#8a3b2c", "#f5e6df", "#c9aaa0", "#ffb04a", "#1e0e02"]] },
-  { n: "Schmiedefeuer", d: "Rußiges Schwarz, glühendes Rot, Eisenkanten.", rr: RR.hart, bs: "solid", bw: "2px", rule: "4px ridge", grain: .45, deco: 1,
+  { numc: "#fff0d8", n: "Schmiedefeuer", d: "Rußiges Schwarz, glühendes Rot, Eisenkanten.", rr: RR.hart, bs: "solid", bw: "2px", rule: "4px ridge", grain: .45, deco: 1,
     die: ["radial-gradient(circle at 28% 22%, #9a8f82 0%, #5d554c 55%, #2c2722 100%)", "radial-gradient(circle at 34% 30%, #ff9a5a 0, #b42a10 66%)"],
     t: [["#0c0a09", "#1a1513", "#2a201c", "#5a463c", "#efe2d8", "#b6a396", "#d85a30", "#190703"],
         ["#0d0a09", "#1e1714", "#30231d", "#6e5244", "#f2e5da", "#bda898", "#ea6c3a", "#1c0803"],
-        ["#0d0a0c", "#221519", "#361e25", "#80384a", "#f6e8ea", "#c8a8b0", "#f08a4a", "#1e0a03"]] }
+        ["#0d0a0c", "#221519", "#361e25", "#80384a", "#f6e8ea", "#c8a8b0", "#f08a4a", "#1e0a03"]] },
+  { n: "Seefahrer", d: "Teer, Salz und Messing, Würfel aus Walknochen.", rr: RR.rund, bs: "solid", rule: "3px double", grain: .3, deco: 1,
+    die: ["linear-gradient(140deg, #f3ead2 0%, #d9ccaa 52%, #b3a37c 100%)", "radial-gradient(circle at 34% 30%, #1d4a62 0, #081d2a 64%)"],
+    t: [["#0a1013", "#14202a", "#1d3040", "#3d5a6a", "#e6eef0", "#a0b6bd", "#c9a24a", "#171003"],
+        ["#0b1215", "#172733", "#21394a", "#4b7084", "#e8f0f2", "#a8bfc7", "#dcb55a", "#191203"],
+        ["#0a0f18", "#14213a", "#1e3258", "#3f68a8", "#eef2f8", "#b0c0dc", "#e3c06a", "#1a1304"]] },
+  { n: "Pest & Kerzen", d: "Fahles Wachs, Rauch und Totenkopf-Gelb.", rr: RR.grob, bs: "double", bw: "3px", rule: "3px double", grain: .44, deco: 3,
+    die: ["radial-gradient(circle at 28% 22%, #f4efc8 0%, #d8d09a 52%, #a29a62 100%)", "radial-gradient(circle at 34% 30%, #3a3a1a 0, #0e0e04 64%)"],
+    t: [["#0e0e0a", "#1c1c14", "#2a2a1d", "#555238", "#eeeccf", "#adaa8a", "#c8c26a", "#141405"],
+        ["#0f0f0a", "#202014", "#2e2e1f", "#68643f", "#f0eed2", "#b4b190", "#d8d278", "#161605"],
+        ["#0d0d0c", "#1d1c19", "#2d2b25", "#6a6450", "#f2efe0", "#b8b4a0", "#e8e0a0", "#16150a"]] },
+  { n: "Elfenwald", d: "Silbergrün, Birkenrinde, leuchtende Augen.", rr: RR.rund, bs: "solid", rule: "2px solid", grain: .2, deco: 2,
+    die: ["linear-gradient(140deg, #f2f6ea 0%, #cddcb8 52%, #98ad84 100%)", "radial-gradient(circle at 34% 30%, #9be8c0 0, #1f7a58 66%)"],
+    t: [["#0a120f", "#14221c", "#1e3329", "#3d6552", "#e9f3ec", "#a5c0b0", "#8fe0b4", "#07150d"],
+        ["#0a1410", "#17281f", "#223b2e", "#4b7b63", "#ecf5ee", "#aac6b6", "#a8f0c8", "#08170f"],
+        ["#0b1114", "#16262c", "#213a43", "#4f8a96", "#ecf4f6", "#adc9d0", "#d6f0a0", "#0e1604"]] },
+  { n: "Zwergenschmiede", d: "Basalt, Gold und Runen, schwere Kanten.", rr: RR.hart, bs: "double", bw: "4px", rule: "4px ridge", grain: .38, deco: 0,
+    die: ["radial-gradient(circle at 28% 22%, #f6d77c 0%, #c79a2a 52%, #7a5a10 100%)", "radial-gradient(circle at 34% 30%, #4a4036 0, #14100c 64%)"],
+    numc: "#2a1c04",
+    t: [["#0e0d0b", "#1d1b17", "#2c2924", "#645a46", "#f1ebdc", "#b6ad98", "#d9a73a", "#1a1203"],
+        ["#0f0d0a", "#211d16", "#31291f", "#7a6a48", "#f4eede", "#bdb39a", "#ebb94a", "#1c1303"],
+        ["#0d0c0f", "#1f1c26", "#2f2a3c", "#8a7a52", "#f4f0e6", "#c0b8a8", "#f0c85a", "#1c1403"]] },
+  { n: "Blutmond", d: "Nachtblau unter rotem Mond, Rubinwürfel.", rr: RR.fein, bs: "solid", rule: "3px solid", grain: .3, deco: 2,
+    die: ["radial-gradient(circle at 28% 22%, #ff8a8a 0%, #b8142a 52%, #5a0614 100%)", "radial-gradient(circle at 34% 30%, #ffe8e0 0, #e8c8c0 66%)"],
+    numc: "#fff0ec",
+    t: [["#0a0a12", "#14141f", "#1f1f30", "#44445f", "#ecebf4", "#a9a8c0", "#d9485a", "#1a0508"],
+        ["#0b0a14", "#171523", "#231f38", "#52507a", "#eeedf6", "#b0aec8", "#ea5a6c", "#1c0509"],
+        ["#0d0a14", "#1c1428", "#2c1e40", "#6a3f78", "#f6ecf4", "#c8aec6", "#f06a7a", "#1e060a"]] }
 ];
-const SKIN_VARS = ["--bg", "--surface", "--surface2", "--line", "--fg", "--muted", "--silver", "--on-accent", "--moss", "--rust", "--grain", "--card-r", "--btn-r", "--die-r", "--card-bs", "--card-bw", "--rule", "--tsh", "--die-bg", "--pip", "--deco"];
+const SKIN_VARS = ["--numc", "--bg", "--surface", "--surface2", "--line", "--fg", "--muted", "--silver", "--on-accent", "--moss", "--rust", "--grain", "--card-r", "--btn-r", "--die-r", "--card-bs", "--card-bw", "--rule", "--tsh", "--die-bg", "--pip", "--deco"];
 const hx = (c, a) => c + a;
 function decoFor(v, p) {
   const vig = `radial-gradient(ellipse at 50% 50%, transparent 64%, #0008 128%)`;
@@ -1705,6 +1823,7 @@ function applyTier() {
     st.setProperty("--card-bs", S.bs || "solid"); if (S.bw) st.setProperty("--card-bw", S.bw);
     if (S.rule) st.setProperty("--rule", S.rule); if (S.tsh) st.setProperty("--tsh", S.tsh);
     if (S.die) { st.setProperty("--die-bg", S.die[0]); st.setProperty("--pip", S.die[1]); }
+    if (S.numc) st.setProperty("--numc", S.numc);
     st.setProperty("--deco", decoFor(S.deco || 0, p));
     root.style.colorScheme = S.light ? "light" : "dark";
   } else root.style.colorScheme = "";
@@ -1731,6 +1850,7 @@ const repLevel = f => REP_STEPS.filter(x => perm().rep[f] >= x).length;
 function factionOf(n) {
   if (n.id.startsWith("wache:") || n.tunnel || n.loc === "kaserne") return "wache";
   if (["slums", "kanal", "gasse", "hafen", "strand", "gerber"].includes(n.loc)) return "unterwelt";
+  if (n.isl) return "volk";
   if (["markt", "gilde", "gasthof", "schlosstor", "schloss", "saal"].includes(n.loc)) return "gilde";
   return "volk";
 }
@@ -1938,6 +2058,7 @@ document.addEventListener("click", e => {
   if (t.dataset.sch) { const [i, k] = t.dataset.sch.split(":"); return storyChoose(i, k); }
   if (t.dataset.sbtn) return storyBtn(t.dataset.sbtn);
   if (t.dataset.repair) return repair(+t.dataset.repair);
+  if (t.dataset.cscope) { compScope = t.dataset.cscope; return render(); }
   if (t.dataset.chron) return openSheet(chronHtml(t.dataset.chron), true);
   if (t.dataset.talent) return buyTalent(t.dataset.talent);
   if (t.dataset.startup) return startupBuy(t.dataset.startup);
@@ -1987,7 +2108,7 @@ document.addEventListener("click", e => {
 });
 function startDuelFrom(D, stake) {
   const id = D.npcId, s = G.npcs[id], fin = isFinal(id), bag = activeDice();
-  if (!LOCS[G.loc].tunnel) { G.flags.fell = G.flags.fell || {}; if (hasT("fell") && !G.flags.fell[G.loc]) G.flags.fell[G.loc] = true; else G.pressure[G.loc] = pr(G.loc) + 1; }
+  if (!LOCS[G.loc].tunnel && !LOCS[G.loc].isl) { G.flags.fell = G.flags.fell || {}; if (hasT("fell") && !G.flags.fell[G.loc]) G.flags.fell[G.loc] = true; else G.pressure[G.loc] = pr(G.loc) + 1; }
   D.mods = modsFor(NPCS[id]); D.pTurns = 0; D.atem = false;
   D.stake = fin ? 0 : stake;
   D.stakeDie = fin ? (D.stakeDie || pickWeighted(s.pool.map(d => [d, d === s.stolen ? 2 : 1]))) : null;

@@ -1,5 +1,5 @@
 // Service Worker: Spiel offline nutzbar machen. Cache-Name bei jeder Änderung hochzählen.
-const CACHE = "slums-v16";
+const CACHE = "slums-v17";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
