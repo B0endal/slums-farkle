@@ -112,15 +112,15 @@ nav.tabs button:disabled { opacity: .35; cursor: default; }
 .kept .lbl { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--moss); margin-right: 4px; }
 .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .die {
-  width: 100%; max-width: 104px; aspect-ratio: 1; border-radius: 19%; border: 0; padding: 12.5%; position: relative; cursor: pointer;
-  background: radial-gradient(circle at 28% 22%, #fffef6 0%, #f1ead6 52%, #d9d0b5 100%);
+  width: 100%; max-width: 104px; aspect-ratio: 1; border-radius: var(--die-r, 19%); border: 0; padding: 12.5%; position: relative; cursor: pointer;
+  background: var(--die-bg, radial-gradient(circle at 28% 22%, #fffef6 0%, #f1ead6 52%, #d9d0b5 100%));
   box-shadow: inset 0 2px 1px #fffc, inset 0 -7px 9px #a99c7040, inset 0 0 0 1.5px #0000001a, 0 4px 0 #0007, 0 10px 12px #0006;
-  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); transition: transform .12s, box-shadow .12s;
+  display: grid; grid-template: repeat(3, minmax(0, 1fr)) / repeat(3, minmax(0, 1fr)); transition: transform .12s, box-shadow .12s;
 }
-.die i { visibility: hidden; display: block; width: 88%; height: auto; aspect-ratio: 1; margin: auto; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #55534c 0, #15140f 62%); box-shadow: inset 0 2px 3px #000c, 0 1px 0 #fffb; }
+.die i { visibility: hidden; display: block; width: 88%; height: auto; aspect-ratio: 1; margin: 0; place-self: center; border-radius: 50%;
+  background: var(--pip, radial-gradient(circle at 34% 30%, #55534c 0, #15140f 62%)); box-shadow: inset 0 2px 3px #000c, 0 1px 0 #fffb; }
 .die i.on { visibility: visible; }
-.die.one i.on { width: 128%; height: auto; background: radial-gradient(circle at 34% 30%, #e8765b 0, #a82f1b 70%); box-shadow: inset 0 2px 3px #4a0f05cc, 0 1px 0 #fffb; }
+.die.one i.on { width: 128%; height: auto; place-self: center; background: radial-gradient(circle at 34% 30%, #e8765b 0, #a82f1b 70%); box-shadow: inset 0 2px 3px #4a0f05cc, 0 1px 0 #fffb; }
 .die .x { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0; }
 .die .x::before { content: "✕"; font-family: var(--font-display); font-size: 2.9rem; line-height: 1; color: #a82f1b; text-shadow: 0 1px 0 #fff9; }
 .die.defect { background: radial-gradient(circle at 28% 22%, #e7e0cb 0%, #cbc2a6 60%, #b3a98b 100%); }
@@ -132,7 +132,7 @@ nav.tabs button:disabled { opacity: .35; cursor: default; }
 .die { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
 button.dname { background: none; border: 0; padding: 0; font-family: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
 .die.off { cursor: default; }
-.die.mini { width: 44px; max-width: 44px; padding: 5px; border-radius: 17%; cursor: default; box-shadow: inset 0 1px 1px #fffc, inset 0 -3px 5px #a99c7040, 0 0 0 2px var(--moss), 0 2px 0 #0007; }
+.die.mini { width: 44px; max-width: 44px; padding: 5px; border-radius: var(--die-r, 17%); cursor: default; box-shadow: inset 0 1px 1px #fffc, inset 0 -3px 5px #a99c7040, 0 0 0 2px var(--moss), 0 2px 0 #0007; }
 .die.mini .x::before { font-size: 1.5rem; }
 .die.mini.any .x::before { font-size: 1.1rem; }
 .die.roll { animation: tumble .38s ease-out; }
@@ -212,40 +212,40 @@ html { background: var(--bg); }
 body { font-weight: 500; }
 body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; transition: opacity .9s ease; }
 body::before { opacity: var(--grain); background-image: var(--noise); }
-body::after { background:
+body::after { background: var(--deco,
     radial-gradient(ellipse at 50% 50%, transparent 66%, #0007 125%),
     radial-gradient(circle at 88% 64%, #26301f60 0, transparent 30%),
     radial-gradient(circle at 30% 96%, #5a1f1440 0, transparent 26%),
-    radial-gradient(circle at 60% 40%, #4a361f24 0, transparent 40%); }
-html[data-tier="buerger"] body::after { background:
+    radial-gradient(circle at 60% 40%, #4a361f24 0, transparent 40%)); }
+html[data-tier="buerger"] body::after { background: var(--deco,
     radial-gradient(ellipse at 50% 50%, transparent 68%, #0006 125%),
     radial-gradient(circle at 85% 70%, #70604d26 0, transparent 34%),
-    radial-gradient(circle at 20% 95%, #d6d7d414 0, transparent 30%); }
-html[data-tier="adel"] body::after { background:
+    radial-gradient(circle at 20% 95%, #d6d7d414 0, transparent 30%)); }
+html[data-tier="adel"] body::after { background: var(--deco,
     radial-gradient(ellipse at 50% 50%, transparent 68%, #0008 125%),
     radial-gradient(circle at 15% 88%, #a8323c30 0, transparent 34%),
-    radial-gradient(circle at 85% 20%, #3b5bb232 0, transparent 38%); }
+    radial-gradient(circle at 85% 20%, #3b5bb232 0, transparent 38%)); }
 #app { background: transparent; position: relative; z-index: 1; }
-header.top { border-bottom: 3px double var(--line); background: none; }
-.brand { text-shadow: 0 2px 0 #000a; color: var(--fg); }
-h2, .big { text-shadow: 0 2px 0 #000a; }
+header.top { border-bottom: var(--rule, 3px double) var(--line); background: none; }
+.brand { text-shadow: var(--tsh, 0 2px 0 #000a); color: var(--fg); }
+h2, .big { text-shadow: var(--tsh, 0 2px 0 #000a); }
 h3 { color: var(--silver); }
 .muted, .small.muted { color: var(--muted); }
-.card, .score .box { border-radius: 3px; border-color: var(--line);
+.card, .score .box { border-radius: var(--card-r, 3px); border-color: var(--line); border-style: var(--card-bs, solid); border-width: var(--card-bw, 1px);
   background: linear-gradient(160deg, #ffffff08, #0000 40%, #00000028), var(--surface);
   box-shadow: inset 0 0 0 1px #0007, inset 0 0 18px #0004, 0 2px 0 #0008; }
 .card::before { content: ""; position: absolute; inset: 0; background-image: var(--noise); opacity: calc(var(--grain) * .55); pointer-events: none; border-radius: inherit; }
 .card { position: relative; }
 .card > * { position: relative; }
 .banner { border-radius: 3px; box-shadow: inset 0 0 14px #0006; }
-.btn { border-radius: 3px; border: 1px solid var(--line);
+.btn { border-radius: var(--btn-r, 3px); border: 1px solid var(--line);
   background: linear-gradient(to bottom, #ffffff0d, #0000 45%, #0000003a), var(--surface2);
   box-shadow: inset 0 1px 0 #ffffff12, inset 0 -2px 0 #0006, 0 2px 0 #000a; text-shadow: 0 1px 0 #0008; }
 .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 4px #000a; }
 .btn.primary { background: linear-gradient(to bottom, #ffffff30, #0000 50%, #00000030), var(--silver); color: var(--on-accent); border-color: #0008; text-shadow: 0 1px 0 #ffffff40;
   box-shadow: inset 0 1px 0 #ffffff55, inset 0 -2px 0 #0004, 0 2px 0 #000a; }
 .btn.danger { background: transparent; }
-nav.tabs { border-top: 3px double var(--line); background: linear-gradient(to bottom, #0000, #0004), var(--surface); }
+nav.tabs { border-top: var(--rule, 3px double) var(--line); background: linear-gradient(to bottom, #0000, #0004), var(--surface); }
 nav.tabs button[aria-current="page"] { border-top-color: var(--silver); }
 .sheet { border-top: 3px double var(--silver); border-radius: 4px 4px 0 0; box-shadow: 0 -8px 30px #000c, inset 0 0 40px #0004;
   background: linear-gradient(170deg, #ffffff08, #0000 35%), var(--surface); }
@@ -318,8 +318,8 @@ html.calm .die.cat-golden::after { animation: none; }
 .worldmap .mn.sel .mc { stroke: var(--moss); stroke-width: 4; }
 .worldmap .tbtn { cursor: pointer; }
 .worldmap .tbtn rect { fill: var(--moss); stroke: #000a; stroke-width: 2; }
-.worldmap .tbtn text { fill: #0d140d; font-weight: 700; font-size: 13px; }
-.btn.go2, .btn.act-on { background: var(--moss); color: #0d140d; border-color: #000a; }
+.worldmap .tbtn text { fill: var(--bg); font-weight: 700; font-size: 13px; }
+.btn.go2, .btn.act-on { background: var(--moss); color: var(--bg); border-color: #000a; }
 .worldmap .mn.tun .mc { fill: #1a1020; }
 .worldmap .ml { fill: var(--fg); font: 700 11px var(--font-body); paint-order: stroke; stroke: var(--bg); stroke-width: 3.5px; stroke-linejoin: round; }
 .worldmap .mn.unk .ml { fill: var(--muted); }
@@ -1525,7 +1525,15 @@ function devCard() {
   return `<div class="card stack" style="gap:8px;border-color:var(--rust)"><h3>Entwickler</h3>
     <div class="small muted">Kleidung: ${cl}. Silber: ${G.silver}. Tag ${G.day}.</div>
     <div class="row wrap"><button class="btn small" data-act="dev-clothes0">Keine Kleidung</button><button class="btn small" data-act="dev-clothes1">Bürgerkleidung</button><button class="btn small" data-act="dev-clothes2">Adelskleidung</button></div>
-    <div class="row wrap"><button class="btn small" data-act="dev-silver">+1000 Silber</button><button class="btn small" data-act="dev-off">Entwickler aus</button></div></div>`;
+    <div class="row wrap"><button class="btn small" data-act="dev-silver">+1000 Silber</button><button class="btn small" data-act="dev-skins">Optik testen</button><button class="btn small" data-act="dev-off">Entwickler aus</button></div></div>`;
+}
+function skinSheet() {
+  const k = curSkin(), ti = G.items.adel ? 2 : G.items.buerger ? 1 : 0;
+  const rows = SKINS.map((S, i) => {
+    const p = S.t ? S.t[ti] : null, sw = p ? [p[0], p[1], p[3], p[6]] : ["#0f0d0b", "#1e1914", "#4d463b", "#c9bea6"];
+    return `<button class="btn full skinrow ${i === k ? "act-on" : ""}" data-act="skin-${i}" style="text-align:left;display:flex;gap:10px;align-items:center;justify-content:space-between"><span><b>${i}. ${esc(S.n)}</b><br><span class="small" style="opacity:.8">${esc(S.d)}</span></span><span style="display:flex;gap:2px;flex:none">${sw.map(c => `<i style="width:14px;height:26px;background:${c};border:1px solid #888"></i>`).join("")}</span></button>`;
+  }).join("");
+  openSheet(`<h2>Optik testen</h2><p class="small muted">Gilt für die aktuelle Kleidungsstufe. Stufe ändern geht im Entwickler-Bereich. Das gewählte Aussehen bleibt gespeichert.</p><div class="stack" style="gap:8px">${rows}</div><div class="row" style="margin-top:10px">${[1, 2, 3, 4, 5, 6].map(v => miniDie(v)).join("")}</div><button class="btn primary full" data-act="close" style="margin-top:10px">Fertig</button>`, true);
 }
 function devAct(a) {
   if (a === "devtap") { if (++devTaps >= 7) { devTaps = 0; P.settings = P.settings || {}; P.settings.dev = !P.settings.dev; save(); render(); } return; }
@@ -1533,6 +1541,8 @@ function devAct(a) {
   else if (a === "dev-clothes1") { G.items.buerger = true; G.items.adel = false; }
   else if (a === "dev-clothes2") { G.items.buerger = true; G.items.adel = true; }
   else if (a === "dev-silver") G.silver += 1000;
+  else if (a === "dev-skins") return skinSheet();
+  else if (a.startsWith("skin-")) { P.settings = P.settings || {}; P.settings.skin = +a.slice(5); lookKey = ""; save(); applyTier(); return skinSheet(); }
   else if (a === "dev-off") { P.settings.dev = false; }
   save(); render();
 }
@@ -1568,11 +1578,95 @@ function viewMore() {
 }
 
 const TIER_COLOR = { slums: "#0f0d0b", buerger: "#12100c", adel: "#0e0b12" };
+// ---------- Optik-Varianten (Entwickler: Mehr → Optik testen). Palette je Stufe: bg, surface, surface2, line, fg, muted, Akzent, Text-auf-Akzent ----------
+const RR = { fein: ["4px 9px 5px 11px / 10px 4px 9px 5px", "3px 7px 4px 8px / 7px 3px 8px 4px", "21% 17% 23% 16% / 17% 22% 16% 23%"],
+             grob: ["2px 15px 3px 12px / 13px 3px 15px 2px", "2px 10px 3px 9px / 9px 3px 10px 2px", "24% 14% 26% 13% / 14% 25% 13% 24%"],
+             hart: ["1px", "1px", "9%"], rund: ["14px 10px 16px 9px / 10px 15px 9px 14px", "12px", "27% 22% 28% 21% / 22% 27% 21% 28%"] };
+const SKINS = [
+  { n: "Aschfahl", d: "Das bisherige Aussehen" },
+  { n: "Pergament & Tinte", d: "Hell, Tinte auf altem Papier. Elfenbeinwürfel.", rr: RR.fein, bs: "solid", rule: "3px double", grain: .3, deco: 2, light: true,
+    mo: "#3f5a24", ru: "#8f2a14", tsh: "0 1px 0 #fff7",
+    t: [["#cdbf9f", "#d9cca9", "#c6b58f", "#7a6642", "#2a2012", "#5b4a2e", "#6b3b1e", "#f3e9d0"],
+        ["#d8cdb0", "#e4dabf", "#d0c3a2", "#6e5d3e", "#241c10", "#54452c", "#5a3a1c", "#f6eedb"],
+        ["#dcd2bd", "#e9e0cc", "#d6cab0", "#5a4a6a", "#1f1a22", "#4f4458", "#7a1f2b", "#fbf1e4"]] },
+  { n: "Kerkerstein", d: "Kalter Stein, gemeißelte Würfel.", rr: RR.hart, bs: "solid", rule: "4px ridge", grain: .34, deco: 3,
+    die: ["radial-gradient(circle at 28% 22%, #dcdedb 0%, #b4b8b5 55%, #8b908d 100%)", "radial-gradient(circle at 34% 30%, #4c4f50 0, #17191a 64%)"],
+    t: [["#121315", "#1f2124", "#2c2f33", "#4a4f55", "#e6e8ea", "#a3a9b0", "#9aa5ad", "#101214"],
+        ["#101315", "#1b2227", "#26313a", "#4e6068", "#e9eef0", "#a9b8bf", "#a8c0c8", "#0e1417"],
+        ["#0f1115", "#1c2030", "#292f45", "#5a6488", "#eef0f6", "#b2b8cf", "#c9b36a", "#1a1405"]] },
+  { n: "Eisen & Blut", d: "Dunkles Eisen, getrocknetes Rot.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .4, deco: 3,
+    die: ["radial-gradient(circle at 28% 22%, #7c8086 0%, #3a3d42 55%, #1c1e22 100%)", "radial-gradient(circle at 34% 30%, #fffaf0 0, #d9d0bd 66%)"],
+    t: [["#110c0b", "#221615", "#321f1c", "#5c3a35", "#efe3df", "#b7a39d", "#b8553f", "#170806"],
+        ["#120d0c", "#251817", "#371f1e", "#704040", "#f2e6e2", "#c0a9a3", "#cf6a52", "#190806"],
+        ["#130a0e", "#2a1220", "#3d1a2e", "#86324f", "#f6e8ec", "#c8a7b2", "#e0a94a", "#1d1204"]] },
+  { n: "Moor & Moos", d: "Feuchtes Grün, Holzwürfel.", rr: RR.rund, bs: "solid", rule: "3px groove", grain: .38, deco: 3,
+    die: ["linear-gradient(135deg, #c79a64 0%, #a67845 45%, #7d552d 100%)", "radial-gradient(circle at 34% 30%, #4a3320 0, #1c1006 62%)"],
+    t: [["#0d110c", "#182016", "#232e20", "#46583f", "#e8eedc", "#a9b79b", "#98b070", "#0f160a"],
+        ["#0e130d", "#1b2a1a", "#273a25", "#547048", "#eaf1de", "#b0c1a0", "#b6c98a", "#101a0b"],
+        ["#0b1210", "#14292a", "#1d3b3d", "#3f7a72", "#e8f3ef", "#a9c7bf", "#d9a441", "#1c1304"]] },
+  { n: "Holzschnitt", d: "Schwarz und Kreide, grobe Kanten.", rr: RR.grob, bs: "double", bw: "4px", rule: "4px double", grain: .5, deco: 0,
+    die: ["linear-gradient(160deg, #f6f0dc 0%, #e6dcc0 100%)", "radial-gradient(circle at 40% 36%, #1f1c18 0, #000 70%)"],
+    t: [["#0b0b0a", "#171614", "#24221e", "#8b8575", "#f4efe0", "#bdb6a2", "#f4efe0", "#0b0b0a"],
+        ["#0c0b09", "#1a1813", "#28251d", "#a89a73", "#f6f0de", "#c4bba0", "#e3cf8f", "#0e0c06"],
+        ["#0a0a0d", "#16151c", "#232233", "#b4404f", "#f6f1ea", "#c9bfc4", "#d94a58", "#1a0507"]] },
+  { n: "Kupfer & Rost", d: "Warmes Metall, Bronzewürfel.", rr: RR.fein, bs: "solid", rule: "3px ridge", grain: .36, deco: 1,
+    die: ["radial-gradient(circle at 28% 22%, #f0bd84 0%, #c07a3a 52%, #7a4a1e 100%)", "radial-gradient(circle at 34% 30%, #5a3014 0, #1e0e04 62%)"],
+    t: [["#130d08", "#261a10", "#38261a", "#6a4a30", "#f1e4d3", "#bda88f", "#c47a3c", "#180c04"],
+        ["#150e08", "#2c1d11", "#402b19", "#805a36", "#f4e8d6", "#c6b095", "#d98f4a", "#1a0d04"],
+        ["#0e1211", "#16282a", "#1f3c3e", "#3f8a84", "#eaf3f0", "#aecbc4", "#e39a4f", "#1a0d04"]] },
+  { n: "Klosterfenster", d: "Violett und Gold, Elfenbein mit Goldaugen.", rr: RR.rund, bs: "double", bw: "3px", rule: "3px double", grain: .26, deco: 1,
+    die: ["radial-gradient(circle at 28% 22%, #fffdf2 0%, #efe6cb 52%, #cdbf98 100%)", "radial-gradient(circle at 34% 30%, #fbe28a 0, #b58416 66%)"],
+    t: [["#0f0b14", "#1d1626", "#2b2038", "#54456b", "#eee6f2", "#b3a7c2", "#b79ad0", "#130c1b"],
+        ["#100b17", "#211833", "#302348", "#62498f", "#f0e8f6", "#bcaed0", "#d0b4f0", "#170c26"],
+        ["#0e0a14", "#241632", "#36204c", "#7a4fa0", "#f6eef6", "#cbb4d6", "#e8c15a", "#1d1403"]] },
+  { n: "Winterfrost", d: "Kaltes Blau, Eiswürfel.", rr: RR.fein, bs: "solid", rule: "2px solid", grain: .22, deco: 3,
+    die: ["linear-gradient(140deg, #f7fcff 0%, #c4e2f0 50%, #92bdd3 100%)", "radial-gradient(circle at 34% 30%, #3b6384 0, #112a40 64%)"],
+    t: [["#0c1114", "#182229", "#243440", "#475f70", "#e8f0f5", "#a7bac7", "#9ec3dc", "#0a1318"],
+        ["#0c1216", "#1a2832", "#26394a", "#55738a", "#eaf2f7", "#aec3d2", "#bfe0f2", "#0a141b"],
+        ["#0b1018", "#172336", "#223454", "#4a6fb0", "#eef3fa", "#b4c4de", "#e6edf6", "#0c1626"]] },
+  { n: "Glutasche", d: "Kohle mit glimmenden Augen.", rr: RR.grob, bs: "solid", rule: "3px solid", grain: .42, deco: 3,
+    die: ["radial-gradient(circle at 28% 22%, #55504b 0%, #26221f 55%, #0f0e0d 100%)", "radial-gradient(circle at 34% 30%, #ffe0a0 0, #e0702a 66%)"],
+    t: [["#0e0d0d", "#1c1a19", "#2a2725", "#4d4642", "#ece4dc", "#aea298", "#e0833a", "#1a0c03"],
+        ["#100e0d", "#211d1a", "#312a25", "#63554a", "#f0e7dd", "#b8aa9c", "#f09a4a", "#1c0d03"],
+        ["#120b0b", "#2a1514", "#3d1e1b", "#8a3b2c", "#f5e6df", "#c9aaa0", "#ffb04a", "#1e0e02"]] },
+  { n: "Schmiedefeuer", d: "Rußiges Schwarz, glühendes Rot, Eisenkanten.", rr: RR.hart, bs: "solid", bw: "2px", rule: "4px ridge", grain: .45, deco: 1,
+    die: ["radial-gradient(circle at 28% 22%, #9a8f82 0%, #5d554c 55%, #2c2722 100%)", "radial-gradient(circle at 34% 30%, #ff9a5a 0, #b42a10 66%)"],
+    t: [["#0c0a09", "#1a1513", "#2a201c", "#5a463c", "#efe2d8", "#b6a396", "#d85a30", "#190703"],
+        ["#0d0a09", "#1e1714", "#30231d", "#6e5244", "#f2e5da", "#bda898", "#ea6c3a", "#1c0803"],
+        ["#0d0a0c", "#221519", "#361e25", "#80384a", "#f6e8ea", "#c8a8b0", "#f08a4a", "#1e0a03"]] }
+];
+const SKIN_VARS = ["--bg", "--surface", "--surface2", "--line", "--fg", "--muted", "--silver", "--on-accent", "--moss", "--rust", "--grain", "--card-r", "--btn-r", "--die-r", "--card-bs", "--card-bw", "--rule", "--tsh", "--die-bg", "--pip", "--deco"];
+const hx = (c, a) => c + a;
+function decoFor(v, p) {
+  const vig = `radial-gradient(ellipse at 50% 50%, transparent 64%, #0008 128%)`;
+  if (v === 1) return `radial-gradient(ellipse at 50% -8%, ${hx(p[6], "30")} 0, transparent 52%), ${vig}`;
+  if (v === 2) return `linear-gradient(112deg, transparent 47%, ${hx(p[3], "30")} 48.5%, transparent 50%), linear-gradient(68deg, transparent 70%, ${hx(p[3], "22")} 71%, transparent 72.5%), ${vig}`;
+  if (v === 3) return `linear-gradient(to top, ${hx(p[6], "1c")}, transparent 38%), radial-gradient(circle at 85% 18%, ${hx(p[3], "30")} 0, transparent 34%), ${vig}`;
+  return `radial-gradient(circle at 15% 88%, ${hx(p[6], "22")} 0, transparent 34%), radial-gradient(circle at 85% 20%, ${hx(p[3], "30")} 0, transparent 38%), ${vig}`;
+}
+function curSkin() { const k = P.settings && P.settings.skin; return SKINS[k] ? k : 0; }
+let lookKey = "";
 function applyTier() {
-  const t = G.items && G.items.adel ? "adel" : G.items && G.items.buerger ? "buerger" : "slums";
-  if (document.documentElement.dataset.tier === t) return;
-  document.documentElement.dataset.tier = t;
-  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", TIER_COLOR[t]);
+  const t = G.items && G.items.adel ? "adel" : G.items && G.items.buerger ? "buerger" : "slums", sk = curSkin();
+  const key = t + "/" + sk; if (lookKey === key) return; lookKey = key;
+  const root = document.documentElement, st = root.style;
+  root.dataset.tier = t; root.dataset.skin = sk;
+  SKIN_VARS.forEach(v => st.removeProperty(v));
+  const S = SKINS[sk], ti = { slums: 0, buerger: 1, adel: 2 }[t];
+  let tc = TIER_COLOR[t];
+  if (S.t) {
+    const p = S.t[ti]; tc = p[0];
+    ["--bg", "--surface", "--surface2", "--line", "--fg", "--muted", "--silver", "--on-accent"].forEach((v, i) => st.setProperty(v, p[i]));
+    if (S.mo) { st.setProperty("--moss", S.mo); st.setProperty("--rust", S.ru); }
+    st.setProperty("--grain", S.grain);
+    if (S.rr) { st.setProperty("--card-r", S.rr[0]); st.setProperty("--btn-r", S.rr[1]); st.setProperty("--die-r", S.rr[2]); }
+    st.setProperty("--card-bs", S.bs || "solid"); if (S.bw) st.setProperty("--card-bw", S.bw);
+    if (S.rule) st.setProperty("--rule", S.rule); if (S.tsh) st.setProperty("--tsh", S.tsh);
+    if (S.die) { st.setProperty("--die-bg", S.die[0]); st.setProperty("--pip", S.die[1]); }
+    st.setProperty("--deco", decoFor(S.deco || 0, p));
+    root.style.colorScheme = S.light ? "light" : "dark";
+  } else root.style.colorScheme = "";
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", tc);
 }
 function render() {
   if (!G) return;
@@ -1639,7 +1733,7 @@ document.addEventListener("click", e => {
   else if (a === "talk-kneipe") talk("kneipe");
   else if (a === "wache-lie") wacheChoose("lie");
   else if (a === "wache-truth") wacheChoose("truth");
-  else if (a === "devtap" || a.startsWith("dev-")) devAct(a);
+  else if (a === "devtap" || a.startsWith("dev-") || a.startsWith("skin-")) devAct(a);
   else if (a === "test-sound") { FX.play("roll"); setTimeout(() => FX.play("bank"), 450); }
   else if (a === "comp-save") {
     const id = t.dataset.cid, c = comp(id), ng = document.getElementById("c-newgroup").value.trim();
